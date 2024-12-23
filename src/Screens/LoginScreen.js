@@ -8,19 +8,48 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
+import * as SecureStore from 'expo-secure-store';
+import apiClient from "../Services/apiClient";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    // Implement login logic here
-    console.log("Login pressed");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      console.log('Attempting to login with:', { email });
+      const response = await apiClient.post('/auth/login', {
+        email,
+        password
+      });
+
+      console.log('Response received:', response.data);
+      
+      if (response.data && response.data.access_token) {
+        await SecureStore.setItemAsync('accessToken', response.data.access_token);
+        await SecureStore.setItemAsync('refreshToken', response.data.refresh_token);
+        Alert.alert('Success', 'Login successful');
+        navigation.navigate('Home');
+      } else {
+        console.log('Invalid response data:', response.data);
+        Alert.alert('Error', 'Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || 'An error occurred during login';
+      Alert.alert('Login failed', errorMessage);
+    }
   };
 
   return (
