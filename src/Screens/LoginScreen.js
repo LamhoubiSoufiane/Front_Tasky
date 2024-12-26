@@ -40,7 +40,7 @@ export default function LoginScreen({ navigation }) {
         await SecureStore.setItemAsync('accessToken', response.data.access_token);
         await SecureStore.setItemAsync('refreshToken', response.data.refresh_token);
         Alert.alert('Success', 'Login successful');
-        navigation.navigate('Home');
+        navigation.navigate('Map');
       } else {
         console.log('Invalid response data:', response.data);
         Alert.alert('Error', 'Invalid response from server');

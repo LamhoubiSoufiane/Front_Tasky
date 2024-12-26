@@ -2,44 +2,45 @@ import axios from 'axios';
 import { getAccessToken, getRefreshToken, saveTokens, removeTokens } from './authService';
 
 const apiClient = axios.create({
-  baseURL: 'http://192.168.1.21:3000',
+  baseURL: 'http://192.168.11.219:3000',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  timeout: 5000, // Reduced timeout to 5 seconds
-  retry: 3,
-  retryDelay: 1000
+  timeout: 15000
 });
 
 apiClient.interceptors.request.use(async (config) => {
-  console.log(`Making ${config.method.toUpperCase()} request to: ${config.baseURL}${config.url}`);
+  console.log('Starting request to:', config.url);
+  console.log('Full URL:', `${config.baseURL}${config.url}`);
+  console.log('Request method:', config.method);
   console.log('Request data:', config.data);
   
   const token = await getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log('Token added to request');
   }
   return config;
 }, error => {
-  console.error('Request interceptor error:', error);
+  console.error('Request error:', error.message);
   return Promise.reject(error);
 });
 
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('Response received:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data
-    });
+    console.log('Response received successfully');
     return response;
   },
   async (error) => {
-    console.error('Response error:', {
+    console.error('Response error details:', {
       message: error.message,
-      status: error.response?.status,
-      data: error.response?.data
+      code: error.code,
+      config: error.config ? {
+        url: error.config.url,
+        method: error.config.method,
+        timeout: error.config.timeout
+      } : 'No config'
     });
 
     const originalRequest = error.config;
