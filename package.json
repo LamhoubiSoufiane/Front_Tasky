@@ -12,14 +12,16 @@
     "@expo/vector-icons": "^14.0.2",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
-    "axios": "^1.6.2",
-    "expo": "^52.0.19",
+    "axios": "^1.7.9",
+    "expo": "~52.0.20",
     "expo-linear-gradient": "~14.0.1",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",
     "react-native": "0.76.5",
     "react-native-animatable": "^1.4.0",
-    "react-native-gesture-handler": "~2.20.2"
+    "react-native-gesture-handler": "~2.20.2",
+    "react-native-secure-storage": "^0.1.2",
+    "expo-secure-store": "~14.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
