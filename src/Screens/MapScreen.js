@@ -1,30 +1,73 @@
-import React from'react';
-import { View, StyleSheet} from'react-native';
-import MapView from'react-native-maps'; // MapViewde react-native-maps
- // Définition du composant fonctionnel Mapview
-    const MapScreen= () => {
-        return (
-            <View style={styles.container}>
-                <MapView
-                    style={styles.map}
-                    initialRegion={{
-                    latitude: 33.697904, // Latitude de la position initiale de la carte
-                    longitude: -7.4019606, // Longitude de la position initiale de la carte
-                    latitudeDelta: 0.0922, // Plage de variation de la latitude (zoom sur la carte)
-                    longitudeDelta: 0.0421, // Plage de variation de la longitude (zoom sur la carte)
-                    }}   />
-            </View> 
-            );
-        }
+import React from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import MapView from 'react-native-maps';
+import { Avatar, BottomNavigation } from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { defaultAvatarUri } from '../assets/default-avatar';
 
-    const styles = StyleSheet.create({
-        container: {
-            flex: 1, // Permet à la vue de prendre toute la hauteur disponible
-            width: '100%', // La largeur de la vue est de 100% de l'écran
-            height: '100%', // La hauteur de la vue est de 100% de l'écran
-        },
-        map: {
-            flex: 1, // Permet à la carte de remplir toute la vue },
-        }
-    });
+const MapScreen = () => {
+    
+
+    return (
+        <View style={styles.container}>
+            {/* Profile Button */}
+            <TouchableOpacity style={styles.profileButton} onPress={() => {/* Navigation vers le profil */}}>
+                <Avatar.Image 
+                    size={40} 
+                    source={{ uri: defaultAvatarUri }}
+                    style={styles.avatar}
+                />
+            </TouchableOpacity>
+
+            {/* Map */}
+            <MapView
+                style={styles.map}
+                initialRegion={{
+                    latitude: 33.697904,
+                    longitude: -7.4019606,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0421,
+                }}
+            />
+
+            
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+    },
+    map: {
+        flex: 1,
+    },
+    profileButton: {
+        position: 'absolute',
+        top: 40,
+        left: 20,
+        zIndex: 1,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    avatar: {
+        backgroundColor: 'white',
+    },
+    bottomNav: {
+        backgroundColor: 'white',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    }
+});
+
 export default MapScreen;
