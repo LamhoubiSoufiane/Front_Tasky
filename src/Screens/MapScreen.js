@@ -4,14 +4,23 @@ import MapView from 'react-native-maps';
 import { Avatar, BottomNavigation } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { defaultAvatarUri } from '../assets/default-avatar';
+import { useNavigation } from '@react-navigation/native';
 
 const MapScreen = () => {
-    
+    const navigation = useNavigation();
 
     return (
         <View style={styles.container}>
             {/* Profile Button */}
-            <TouchableOpacity style={styles.profileButton} onPress={() => {/* Navigation vers le profil */}}>
+            <TouchableOpacity style={styles.profileButton} onPress={() => {
+                console.log("Profile button is pressed");
+                /* Navigation vers le profil */
+                navigation.navigate('Profile');
+            }
+            }
+                //accessibilityLabel ="Go to Profile"
+                //accessibilityRole="button"
+                >
                 <Avatar.Image 
                     size={40} 
                     source={{ uri: defaultAvatarUri }}

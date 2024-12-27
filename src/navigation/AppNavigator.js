@@ -5,6 +5,8 @@ import TaskScreen from '../Screens/TaskScreen';
 import MessageScreen from '../Screens/MessageScreen';
 import TeamScreen from '../Screens/TeamScreen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import ProfileScreen from '../Screens/ProfileScreen';
+import SettingsScreen from '../Screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -23,8 +25,9 @@ const AppNavigator = () => {
                         iconName = 'message-text';
                     } else if (route.name === 'Teams') {
                         iconName = 'account-group';
+                    } else if (route.name === 'Settings') {
+                        iconName = 'cogs';
                     }
-
                     return <Icon name={iconName} size={size} color={color} />;
                 },
                 tabBarActiveTintColor: '#007AFF',
@@ -48,6 +51,7 @@ const AppNavigator = () => {
             <Tab.Screen name="Tasks" component={TaskScreen} />
             <Tab.Screen name="Messages" component={MessageScreen} />
             <Tab.Screen name="Teams" component={TeamScreen} />
+            <Tab.Screen name="Settings" component={SettingsScreen}/>
         </Tab.Navigator>
     );
 };
