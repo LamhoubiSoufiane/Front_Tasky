@@ -4,6 +4,8 @@ import MapScreen from '../Screens/MapScreen';
 import TaskScreen from '../Screens/TaskScreen';
 import MessageScreen from '../Screens/MessageScreen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import ProfileScreen from '../Screens/ProfileScreen';
+import SettingsScreen from '../Screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,8 +22,9 @@ const AppNavigator = () => {
                         iconName = 'clipboard-list';
                     } else if (route.name === 'Messages') {
                         iconName = 'message-text';
+                    } else if (route.name === 'Settings') {
+                        iconName = 'cogs';
                     }
-
                     return <Icon name={iconName} size={size} color={color} />;
                 },
                 tabBarActiveTintColor: '#007AFF',
@@ -44,6 +47,7 @@ const AppNavigator = () => {
             <Tab.Screen name="Map" component={MapScreen} />
             <Tab.Screen name="Tasks" component={TaskScreen} />
             <Tab.Screen name="Messages" component={MessageScreen} />
+            <Tab.Screen name="Settings" component={SettingsScreen}/>
         </Tab.Navigator>
     );
 };

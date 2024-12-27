@@ -126,9 +126,13 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={() => console.log("Forgot password")}>
-            <Text style={styles.forgotPassword}>Forgot password?</Text>
+          <TouchableOpacity onPress={() => {
+                console.log("Forgot password");
+                navigation.navigate("ForgotPassword");
+              }}>
+                <Text style={styles.forgotPassword}>Forgot password?</Text>
           </TouchableOpacity>
+
 
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginText}>Login</Text>

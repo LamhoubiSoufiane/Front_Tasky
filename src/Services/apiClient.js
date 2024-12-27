@@ -3,7 +3,7 @@ import { getAccessToken, getRefreshToken, saveTokens, removeTokens } from './aut
 
 // Créer une instance axios avec la configuration de base
 const apiClient = axios.create({
-  baseURL: 'http://192.168.11.219:3000',
+  baseURL: 'http://192.168.1.149:3000',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
