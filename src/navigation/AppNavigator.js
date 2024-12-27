@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MapScreen from '../Screens/MapScreen';
 import TaskScreen from '../Screens/TaskScreen';
 import MessageScreen from '../Screens/MessageScreen';
+import TeamScreen from '../Screens/TeamScreen';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Tab = createBottomTabNavigator();
@@ -20,6 +21,8 @@ const AppNavigator = () => {
                         iconName = 'clipboard-list';
                     } else if (route.name === 'Messages') {
                         iconName = 'message-text';
+                    } else if (route.name === 'Teams') {
+                        iconName = 'account-group';
                     }
 
                     return <Icon name={iconName} size={size} color={color} />;
@@ -44,6 +47,7 @@ const AppNavigator = () => {
             <Tab.Screen name="Map" component={MapScreen} />
             <Tab.Screen name="Tasks" component={TaskScreen} />
             <Tab.Screen name="Messages" component={MessageScreen} />
+            <Tab.Screen name="Teams" component={TeamScreen} />
         </Tab.Navigator>
     );
 };

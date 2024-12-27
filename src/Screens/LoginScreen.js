@@ -15,6 +15,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
 import * as SecureStore from 'expo-secure-store';
 import apiClient from "../Services/apiClient";
+import { saveTokens, saveUserInfo } from "../Services/authService";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -37,8 +38,19 @@ export default function LoginScreen({ navigation }) {
       console.log('Response received:', response.data);
       
       if (response.data && response.data.access_token) {
-        await SecureStore.setItemAsync('accessToken', response.data.access_token);
-        await SecureStore.setItemAsync('refreshToken', response.data.refresh_token);
+        // Save tokens
+        await saveTokens(response.data.access_token, response.data.refresh_token);
+        
+        // Save user info (now included in the login response)
+        const userInfo = {
+          id: response.data.id,
+          email: response.data.email,
+          username: response.data.username,
+          nom: response.data.nom,
+          prenom: response.data.prenom
+        };
+        await saveUserInfo(userInfo);
+        
         Alert.alert('Success', 'Login successful');
         navigation.navigate('MainApp');
       } else {
