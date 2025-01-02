@@ -1,14 +1,30 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import MapScreen from '../Screens/MapScreen';
 import TaskScreen from '../Screens/TaskScreen';
 import MessageScreen from '../Screens/MessageScreen';
 import TeamScreen from '../Screens/TeamScreen';
+import TeamDetailsScreen from '../Screens/TeamDetailsScreen';
+import CreateTeamScreen from "../Screens/CreateTeamScreen";
+import AddMemberScreen from "../Screens/AddMemberScreen";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import ProfileScreen from '../Screens/ProfileScreen';
 import SettingsScreen from '../Screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
+const TeamStack = createStackNavigator();
+
+const TeamStackNavigator = () => {
+    return (
+        <TeamStack.Navigator screenOptions={{ headerShown: false }}>
+            <TeamStack.Screen name="TeamsList" component={TeamScreen} />
+            <TeamStack.Screen name="TeamDetails" component={TeamDetailsScreen} />
+            <TeamStack.Screen name="CreateTeam" component={CreateTeamScreen} />
+            <TeamStack.Screen name="AddMember" component={AddMemberScreen} />
+        </TeamStack.Navigator>
+    );
+};
 
 const AppNavigator = () => {
     return (
@@ -50,7 +66,7 @@ const AppNavigator = () => {
             <Tab.Screen name="Map" component={MapScreen} />
             <Tab.Screen name="Tasks" component={TaskScreen} />
             <Tab.Screen name="Messages" component={MessageScreen} />
-            <Tab.Screen name="Teams" component={TeamScreen} />
+            <Tab.Screen name="Teams" component={TeamStackNavigator} />
             <Tab.Screen name="Settings" component={SettingsScreen}/>
         </Tab.Navigator>
     );

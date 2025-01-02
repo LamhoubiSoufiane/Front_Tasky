@@ -2,10 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { colors } from "../assets/colors";
 
-const TaskScreen = () => {
+const MessagesScreen = () => {
 	return (
 		<View style={styles.container}>
-			<Text style={styles.text}>Page des tâches en cours de développement</Text>
+			<Text style={styles.text}>
+				Page des messages en cours de développement
+			</Text>
 		</View>
 	);
 };
@@ -25,4 +27,4 @@ const styles = StyleSheet.create({
 	},
 });
 
-export default TaskScreen;
+export default MessagesScreen;
