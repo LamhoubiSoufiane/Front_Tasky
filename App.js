@@ -21,7 +21,6 @@ export default function App() {
 	const Stack = createStackNavigator();
 
 	useEffect(() => {
-		// Réinitialiser les formulaires au démarrage
 		store.dispatch(resetForms());
 	}, []);
 
@@ -34,11 +33,31 @@ export default function App() {
 						screenOptions={{ headerShown: false }}>
 						<Stack.Screen name="Home" component={HomeScreen} />
 						<Stack.Screen name="Login" component={LoginScreen} />
-						<Stack.Screen name="Register" component={RegisterScreen} />
-						<Stack.Screen name="MainApp" component={AppNavigator} />
-						<Stack.Screen name="Profile" component={ProfileScreen} />
-						<Stack.Screen name="EditProfile" component={EditScreen} />
-						<Stack.Screen name="Settings" component={SettingsScreen} />
+						<Stack.Screen
+							name="Register"
+							component={RegisterScreen}
+							options={{ lazy: true }}
+						/>
+						<Stack.Screen
+							name="MainApp"
+							component={AppNavigator}
+							options={{ lazy: true }}
+						/>
+						<Stack.Screen
+							name="Profile"
+							component={ProfileScreen}
+							options={{ lazy: true }}
+						/>
+						<Stack.Screen
+							name="EditProfile"
+							component={EditScreen}
+							options={{ lazy: true }}
+						/>
+						<Stack.Screen
+							name="Settings"
+							component={SettingsScreen}
+							options={{ lazy: true }}
+						/>
 						<Stack.Screen
 							name="ChangePassword"
 							component={ChangePasswordScreen}

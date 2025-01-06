@@ -166,7 +166,6 @@ const RegisterScreen = ({ navigation }) => {
 							style={styles.input}
 							value={email}
 							onChangeText={(value) => {
-								console.log("Email input changed:", value);
 								handleInputChange("email", value);
 							}}
 							autoCapitalize="none"

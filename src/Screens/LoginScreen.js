@@ -69,15 +69,13 @@ const LoginScreen = ({ navigation }) => {
 			const result = await dispatch(login(credentials));
 
 			if (result && result.success) {
+				navigation.replace("MainApp");
 				Toast.show({
 					type: "success",
 					text1: "Succès",
 					text2: result.message || "Connexion réussie",
 					position: "top",
 					visibilityTime: 2000,
-					onHide: () => {
-						navigation.replace("MainApp");
-					},
 				});
 			} else {
 				Toast.show({

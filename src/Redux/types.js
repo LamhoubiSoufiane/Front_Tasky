@@ -8,7 +8,7 @@ export const AUTH_REGISTER_FAIL = "AUTH_REGISTER_FAIL";
 export const AUTH_LOGOUT = "AUTH_LOGOUT";
 export const AUTH_RESET = "AUTH_RESET";
 
-// Form types
+//Login form and register form types
 export const SET_LOGIN_FORM = "SET_LOGIN_FORM";
 export const SET_REGISTER_FORM = "SET_REGISTER_FORM";
 export const RESET_FORMS = "RESET_FORMS";
@@ -20,7 +20,7 @@ export const TEAMS_LOADED = "TEAMS_LOADED";
 export const TEAM_MEMBERS_LOADED = "TEAM_MEMBERS_LOADED";
 export const TEAM_MEMBERS_ERROR = "TEAM_MEMBERS_ERROR";
 
-// Member types
+// Team member types
 export const MEMBER_LOADING = "MEMBER_LOADING";
 export const MEMBER_ERROR = "MEMBER_ERROR";
 export const MEMBER_SUCCESS = "MEMBER_SUCCESS";
