@@ -18,7 +18,7 @@ import {
 // Configuration axios
 const api = axios.create({
 	baseURL: API_BASE_URL,
-	timeout: 10000,
+	timeout: 15000,
 	headers: {
 		"Content-Type": "application/json",
 	},
@@ -41,8 +41,6 @@ api.interceptors.request.use(
 // Action de connexion
 export const login = (credentials) => async (dispatch) => {
 	try {
-		dispatch({ type: AUTH_LOADING });
-
 		const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, {
 			email: credentials.email,
 			password: credentials.password,

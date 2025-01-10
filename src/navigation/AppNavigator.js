@@ -3,6 +3,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { ActivityIndicator, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { NavigationContainer } from "@react-navigation/native";
+import CreateProjectScreen from "../Screens/CreateProjectScreen";
 
 const MapScreen = lazy(() => import("../Screens/MapScreen"));
 const TaskScreen = lazy(() => import("../Screens/TaskScreen"));
@@ -19,79 +21,45 @@ const LoadingComponent = () => (
 	</View>
 );
 
-const LazyMapScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<MapScreen />
-	</Suspense>
-);
-
-const LazyTaskScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<TaskScreen />
-	</Suspense>
-);
-
-const LazyMessageScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<MessageScreen />
-	</Suspense>
-);
-
-const LazyTeamScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<TeamScreen />
-	</Suspense>
-);
-
-const LazySettingsScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<SettingsScreen />
-	</Suspense>
-);
-
-const LazyTeamDetailsScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<TeamDetailsScreen />
-	</Suspense>
-);
-
-const LazyCreateTeamScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<CreateTeamScreen />
-	</Suspense>
-);
-
-const LazyAddMemberScreen = () => (
-	<Suspense fallback={<LoadingComponent />}>
-		<AddMemberScreen />
-	</Suspense>
-);
+// Modifier la façon dont nous créons les composants lazy
+const withSuspense = (WrappedComponent) => {
+	return function WithSuspenseWrapper(props) {
+		return (
+			<Suspense fallback={<LoadingComponent />}>
+				<WrappedComponent {...props} />
+			</Suspense>
+		);
+	};
+};
 
 const Tab = createBottomTabNavigator();
 const TeamStack = createStackNavigator();
 
 const TeamStackNavigator = () => {
 	return (
-		<TeamStack.Navigator screenOptions={{ headerShown: false }}>
+		<TeamStack.Navigator 
+			screenOptions={{ 
+				headerShown: false
+			}}>
 			<TeamStack.Screen
 				name="TeamsList"
-				component={LazyTeamScreen}
-				options={{ lazy: true }}
+				component={withSuspense(TeamScreen)}
 			/>
 			<TeamStack.Screen
 				name="TeamDetails"
-				component={LazyTeamDetailsScreen}
-				options={{ lazy: true }}
+				component={withSuspense(TeamDetailsScreen)}
 			/>
 			<TeamStack.Screen
 				name="CreateTeam"
-				component={LazyCreateTeamScreen}
-				options={{ lazy: true }}
+				component={withSuspense(CreateTeamScreen)}
 			/>
 			<TeamStack.Screen
 				name="AddMember"
-				component={LazyAddMemberScreen}
-				options={{ lazy: true }}
+				component={withSuspense(AddMemberScreen)}
+			/>
+			<TeamStack.Screen
+				name="CreateProject"
+				component={withSuspense(CreateProjectScreen)}
 			/>
 		</TeamStack.Navigator>
 	);
@@ -131,28 +99,23 @@ const AppNavigator = () => {
 			})}>
 			<Tab.Screen
 				name="Map"
-				component={LazyMapScreen}
-				options={{ lazy: true }}
+				component={withSuspense(MapScreen)}
 			/>
 			<Tab.Screen
 				name="Tasks"
-				component={LazyTaskScreen}
-				options={{ lazy: true }}
+				component={withSuspense(TaskScreen)}
 			/>
 			<Tab.Screen
 				name="Messages"
-				component={LazyMessageScreen}
-				options={{ lazy: true }}
+				component={withSuspense(MessageScreen)}
 			/>
 			<Tab.Screen
 				name="Teams"
 				component={TeamStackNavigator}
-				options={{ lazy: true }}
 			/>
 			<Tab.Screen
 				name="Settings"
-				component={LazySettingsScreen}
-				options={{ lazy: true }}
+				component={withSuspense(SettingsScreen)}
 			/>
 		</Tab.Navigator>
 	);

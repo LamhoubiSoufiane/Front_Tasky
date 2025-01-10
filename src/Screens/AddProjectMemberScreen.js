@@ -15,16 +15,16 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
-const AddMemberScreen = () => {
+const AddProjectMemberScreen = () => {
 	const navigation = useNavigation();
 	const route = useRoute();
 	const dispatch = useDispatch();
 	
-	const { teamId, onMemberAdd } = route.params;
+	const { projectId, onMemberAdd } = route.params;
 	const [loading, setLoading] = React.useState(false);
 	const [searchResults, setSearchResults] = React.useState([]);
-	const { teamMembers } = useSelector((state) => state.team);
-	const currentMembers = teamMembers[teamId] || [];
+	const { projectMembers } = useSelector((state) => state.project);
+	const currentMembers = projectMembers[projectId] || [];
 
 	const handleBackPress = useCallback(() => {
 		navigation?.goBack();
@@ -69,7 +69,7 @@ const AddMemberScreen = () => {
 			Toast.show({
 				type: 'error',
 				text1: 'Erreur',
-				text2: "Cet utilisateur est déjà membre de l'équipe",
+				text2: "Cet utilisateur est déjà membre du projet",
 				position: 'top',
 				visibilityTime: 3000,
 			});
@@ -255,4 +255,4 @@ const styles = StyleSheet.create({
 	},
 });
 
-export default AddMemberScreen;
+export default AddProjectMemberScreen; 

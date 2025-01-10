@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
 	View,
 	Text,
@@ -12,50 +12,53 @@ import { loadUserTeams, loadTeamMembers } from "../Redux/actions/teamActions";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
+import { useNavigation } from "@react-navigation/native";
 
-const TeamScreen = ({ navigation }) => {
+const TeamScreen = () => {
+	const navigation = useNavigation();
 	const dispatch = useDispatch();
-	const { user } = useSelector((state) => state.auth);
-	const { loading, error, teams, teamMembers } = useSelector(
-		(state) => state.team
-	);
-	const [loadingMembers, setLoadingMembers] = useState(false);
+	
+	const user = useSelector((state) => state.auth.user);
+	const { loading, teams, teamMembers } = useSelector((state) => state.team);
 
-	useEffect(() => {
-		loadTeams();
-	}, []);
+	const teamData = useMemo(() => {
+		if (!teams) return [];
+		return teams.map(team => ({
+			...team,
+			memberCount: teamMembers[team.id]?.length || team.members?.length || 0
+		}));
+	}, [teams, teamMembers]);
 
-	useEffect(() => {
-		if (teams && teams.length > 0) {
-			loadAllTeamMembers();
-		}
-	}, [teams]);
-
-	const loadAllTeamMembers = async () => {
-		setLoadingMembers(true);
+	const loadAllTeamMembers = useCallback(async (currentTeams) => {
+		if (!currentTeams?.length) return;
 		try {
-			const promises = teams.map((team) => dispatch(loadTeamMembers(team.id)));
-			await Promise.all(promises);
+			await Promise.all(currentTeams.map((team) => dispatch(loadTeamMembers(team.id))));
 		} catch (error) {
 			console.error("Erreur lors du chargement des membres:", error);
-		} finally {
-			setLoadingMembers(false);
+			Toast.show({
+				type: "error",
+				text1: "Erreur",
+				text2: "Impossible de charger les membres",
+				position: "top",
+				visibilityTime: 3000,
+			});
 		}
-	};
+	}, [dispatch]);
 
-	const loadTeams = async () => {
+	const handleLoadTeams = useCallback(async () => {
+		if (!user?.id) return;
 		try {
-			if (user?.id) {
-				const result = await dispatch(loadUserTeams(user.id));
-				if (!result.success) {
-					Toast.show({
-						type: "error",
-						text1: "Erreur",
-						text2: result.error,
-						position: "top",
+			const result = await dispatch(loadUserTeams(user.id));
+			if (result.success && result.teams?.length > 0) {
+				await loadAllTeamMembers(result.teams);
+			} else if (!result.success) {
+				Toast.show({
+					type: "error",
+					text1: "Erreur",
+					text2: result.error,
+					position: "top",
 						visibilityTime: 3000,
-					});
-				}
+				});
 			}
 		} catch (error) {
 			console.error("Erreur lors du chargement des équipes:", error);
@@ -67,38 +70,47 @@ const TeamScreen = ({ navigation }) => {
 				visibilityTime: 3000,
 			});
 		}
-	};
+	}, [user?.id, dispatch, loadAllTeamMembers]);
 
-	const getMemberCount = (team) => {
-		const members = teamMembers[team.id] || [];
-		return members.length || team.members?.length || 0;
-	};
+	const handleTeamPress = useCallback((team) => {
+		navigation?.navigate("TeamDetails", { team });
+	}, [navigation]);
 
-	const handleRefresh = async () => {
-		await loadTeams();
-		if (teams && teams.length > 0) {
-			await loadAllTeamMembers();
-		}
-	};
+	const handleCreateTeamPress = useCallback(() => {
+		navigation?.navigate("CreateTeam");
+	}, [navigation]);
 
-	const renderTeamItem = ({ item }) => {
-		const memberCount = getMemberCount(item);
-		return (
+	const renderTeamItem = useCallback(({ item }) => (
+		<TouchableOpacity
+			style={styles.teamItem}
+			onPress={() => handleTeamPress(item)}>
+			<View style={styles.teamInfo}>
+				<Text style={styles.teamName}>{item.nom}</Text>
+				<Text style={styles.memberCount}>
+					{item.memberCount} {item.memberCount > 1 ? "membres" : "membre"}
+				</Text>
+			</View>
+			<Icon name="chevron-right" size={24} color={colors.primary} />
+		</TouchableOpacity>
+	), [handleTeamPress]);
+
+	const EmptyComponent = useMemo(() => (
+		<View style={styles.emptyContainer}>
+			<Text style={styles.emptyText}>
+				Vous n'avez pas encore d'équipe
+			</Text>
+			<Text style={styles.emptySubText}>
+				Créez une équipe pour commencer
+			</Text>
 			<TouchableOpacity
-				style={styles.teamItem}
-				onPress={() => navigation.navigate("TeamDetails", { team: item })}>
-				<View style={styles.teamInfo}>
-					<Text style={styles.teamName}>{item.nom}</Text>
-					<Text style={styles.memberCount}>
-						{memberCount} {memberCount > 1 ? "membres" : "membre"}
-					</Text>
-				</View>
-				<Icon name="chevron-right" size={24} color={colors.primary} />
+				style={[styles.addButton, { marginTop: 20, backgroundColor: colors.primary }]}
+				onPress={handleLoadTeams}>
+				<Text style={styles.buttonText}>Charger les équipes</Text>
 			</TouchableOpacity>
-		);
-	};
+		</View>
+	), [handleLoadTeams]);
 
-	if (loading || loadingMembers) {
+	if (loading) {
 		return (
 			<View style={styles.loadingContainer}>
 				<ActivityIndicator size="large" color={colors.primary} />
@@ -112,28 +124,19 @@ const TeamScreen = ({ navigation }) => {
 				<Text style={styles.title}>Mes Équipes</Text>
 				<TouchableOpacity
 					style={styles.addButton}
-					onPress={() => navigation.navigate("CreateTeam")}>
+					onPress={handleCreateTeamPress}>
 					<Icon name="plus" size={24} color="#fff" />
 				</TouchableOpacity>
 			</View>
 
 			<FlatList
-				data={teams}
+				data={teamData}
 				renderItem={renderTeamItem}
 				keyExtractor={(item) => item.id.toString()}
 				contentContainerStyle={styles.listContainer}
-				ListEmptyComponent={
-					<View style={styles.emptyContainer}>
-						<Text style={styles.emptyText}>
-							Vous n'avez pas encore d'équipe
-						</Text>
-						<Text style={styles.emptySubText}>
-							Créez une équipe pour commencer
-						</Text>
-					</View>
-				}
-				refreshing={loading || loadingMembers}
-				onRefresh={handleRefresh}
+				ListEmptyComponent={EmptyComponent}
+				refreshing={loading}
+				onRefresh={handleLoadTeams}
 			/>
 		</View>
 	);
@@ -170,8 +173,15 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
+	buttonText: {
+		color: "#fff",
+		fontSize: 16,
+		fontWeight: "600",
+		paddingHorizontal: 20,
+	},
 	listContainer: {
 		padding: 15,
+		flexGrow: 1,
 	},
 	teamItem: {
 		flexDirection: "row",
@@ -209,6 +219,7 @@ const styles = StyleSheet.create({
 	emptySubText: {
 		fontSize: 14,
 		color: "#666",
+		marginBottom: 20,
 	},
 });
 
