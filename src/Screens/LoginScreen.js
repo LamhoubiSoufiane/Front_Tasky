@@ -66,6 +66,8 @@ const LoginScreen = ({ navigation }) => {
 				password: loginForm.password.trim(),
 			};
 
+			console.log(credentials);
+
 			const result = await dispatch(login(credentials));
 
 			if (result && result.success) {

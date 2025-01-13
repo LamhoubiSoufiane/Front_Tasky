@@ -1,27 +1,78 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { colors } from "../assets/colors";
+import React, { Suspense, lazy, useState } from 'react';
+import { View, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { colors } from '../assets/colors';
+import useTasks from '../hooks/useTasks';
+
+// Lazy loaded components
+const TaskHeader = lazy(() => import('../Components/TaskHeader'));
+const TaskCalendar = lazy(() => import('../Components/TaskCalendar'));
+const TaskItem = lazy(() => import('../Components/TaskItem'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+	<View style={styles.loadingContainer}>
+		<ActivityIndicator size="large" color={colors.primary} />
+	</View>
+);
 
 const TaskScreen = () => {
+	const {
+		tasks,
+		taskGroups,
+		selectedDate,
+		activeFilter,
+		overallProgress,
+		setSelectedDate,
+		setActiveFilter,
+	} = useTasks();
+
+	const [user] = useState({
+		name: 'Dean Lewis',
+		avatar: 'https://example.com/avatar.jpg'
+	});
+
 	return (
-		<View style={styles.container}>
-			<Text style={styles.text}>Page des tâches en cours de développement</Text>
-		</View>
+		<ScrollView style={styles.container}>
+			<Suspense fallback={<LoadingFallback />}>
+				<TaskHeader 
+					user={user}
+					progress={overallProgress}
+				/>
+			</Suspense>
+
+			<Suspense fallback={<LoadingFallback />}>
+				<TaskCalendar
+					selectedDate={selectedDate}
+					onDateSelect={setSelectedDate}
+				/>
+			</Suspense>
+
+			<View style={styles.tasksContainer}>
+				<Suspense fallback={<LoadingFallback />}>
+					{tasks.map(task => (
+						<TaskItem
+							key={task.id}
+							task={task}
+						/>
+					))}
+				</Suspense>
+			</View>
+		</ScrollView>
 	);
 };
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "#fff",
-		padding: 20,
+		backgroundColor: '#f5f5f5',
 	},
-	text: {
-		fontSize: 18,
-		color: colors.primary,
-		textAlign: "center",
+	loadingContainer: {
+		padding: 20,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	tasksContainer: {
+		paddingVertical: 16,
 	},
 });
 
