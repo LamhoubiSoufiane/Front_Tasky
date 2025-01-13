@@ -7,6 +7,10 @@ import {
 	TEAMS_LOADED,
 	TEAM_MEMBERS_LOADED,
 	TEAM_MEMBERS_ERROR,
+	TEAM_LOADING,
+	TEAM_UPDATE,
+	TEAM_DELETE,
+	TEAM_ERROR,
 } from "../types";
 
 // Configuration axios avec intercepteur pour le token
@@ -47,8 +51,7 @@ export const loadUserTeams = (userId) => async (dispatch) => {
 			throw new Error("Token d'authentification non trouvé");
 		}
 
-		console.log("URL de la requête:", `${API_BASE_URL}/teams/user/${userId}`);
-		const response = await api.get(`/teams/user/${userId}`);
+		const response = await api.get(API_ENDPOINTS.TEAMS.USER(userId));
 		console.log("Réponse des équipes:", response.data);
 
 		if (response.data) {
@@ -96,7 +99,7 @@ export const loadTeamMembers = (teamId) => async (dispatch) => {
 			throw new Error("Token d'authentification non trouvé");
 		}
 
-		const response = await api.get(`/teams/${teamId}/members`);
+		const response = await api.get(API_ENDPOINTS.TEAMS.MEMBERS(teamId));
 		console.log("Réponse des membres:", response.data);
 
 		dispatch({
@@ -145,7 +148,7 @@ export const createTeam = (teamData) => async (dispatch) => {
 			throw new Error("Token d'authentification non trouvé");
 		}
 
-		const response = await api.post("/teams", {
+		const response = await api.post(API_ENDPOINTS.TEAMS.BASE, {
 			nom: teamData.nom,
 			memberIds: teamData.memberIds,
 		});
@@ -252,7 +255,12 @@ export const deleteTeam = (teamId) => async (dispatch) => {
 // Ajouter un membre à une équipe
 export const addTeamMember = (teamId, userId) => async (dispatch) => {
 	try {
-		const response = await api.post(`/teams/${teamId}/members/${userId}`);
+		const token = await AsyncStorage.getItem("access_token");
+		if (!token) {
+			throw new Error("Token d'authentification non trouvé");
+		}
+
+		const response = await api.post(API_ENDPOINTS.TEAMS.MEMBER(teamId, userId));
 		console.log("Réponse ajout membre:", response.data);
 
 		// Recharger les membres après l'ajout
@@ -289,7 +297,12 @@ export const addTeamMember = (teamId, userId) => async (dispatch) => {
 // Retirer un membre d'une équipe
 export const removeTeamMember = (teamId, userId) => async (dispatch) => {
 	try {
-		const response = await api.delete(`/teams/${teamId}/members/${userId}`);
+		const token = await AsyncStorage.getItem("access_token");
+		if (!token) {
+			throw new Error("Token d'authentification non trouvé");
+		}
+
+		const response = await api.delete(API_ENDPOINTS.TEAMS.MEMBER(teamId, userId));
 		console.log("Réponse retrait membre:", response.data);
 
 		// Recharger les membres après le retrait
