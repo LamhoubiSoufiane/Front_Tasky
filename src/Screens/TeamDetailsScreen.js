@@ -15,6 +15,7 @@ import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { sendTeamInvitationNotification, initializeNotifications } from '../Services/notificationService';
 
 const TeamDetailsScreen = () => {
 	const navigation = useNavigation();
@@ -47,6 +48,11 @@ const TeamDetailsScreen = () => {
 		}
 	}, [team?.id, dispatch, activeTab]);
 
+	useEffect(() => {
+		// Initialize notifications when component mounts
+		initializeNotifications();
+	}, []);
+
 	const isTeamOwner = useMemo(() => {
 		return team?.owner?.id === user?.id;
 	}, [team?.owner?.id, user?.id]);
@@ -72,6 +78,7 @@ const TeamDetailsScreen = () => {
 		}
 		navigation?.navigate("AddMember", { 
 			teamId: team.id,
+			teamName: team.nom,
 			onMemberAdd: async (userId) => {
 				try {
 					const result = await dispatch(addTeamMember(team.id, userId));
@@ -84,6 +91,7 @@ const TeamDetailsScreen = () => {
 							visibilityTime: 3000,
 						});
 						dispatch(loadTeamMembers(team.id));
+						return { success: true };
 					} else {
 						Toast.show({
 							type: "error",
@@ -92,6 +100,7 @@ const TeamDetailsScreen = () => {
 							position: "top",
 							visibilityTime: 3000,
 						});
+						return { success: false, error: result.error };
 					}
 				} catch (error) {
 					console.error("Erreur lors de l'ajout du membre:", error);
@@ -102,10 +111,11 @@ const TeamDetailsScreen = () => {
 						position: "top",
 						visibilityTime: 3000,
 					});
+					return { success: false, error: error.message };
 				}
 			}
 		});
-	}, [navigation, team?.id, isTeamOwner, dispatch]);
+	}, [navigation, team?.id, team?.nom, isTeamOwner, dispatch]);
 
 	const handleProjectPress = useCallback((project) => {
 		navigation?.navigate("ProjectDetails", { project });

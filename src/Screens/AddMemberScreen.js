@@ -14,13 +14,16 @@ import { colors } from '../assets/colors';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { initializeNotifications } from '../Services/notificationService';
+import { API_BASE_URL } from './config';
+
 
 const AddMemberScreen = () => {
 	const navigation = useNavigation();
 	const route = useRoute();
 	const dispatch = useDispatch();
 	
-	const { teamId, onMemberAdd } = route.params;
+	const { teamId, onMemberAdd, teamName } = route.params;
 	const [loading, setLoading] = React.useState(false);
 	const [searchResults, setSearchResults] = React.useState([]);
 	const { teamMembers } = useSelector((state) => state.team);
@@ -77,8 +80,49 @@ const AddMemberScreen = () => {
 		}
 
 		try {
-			await onMemberAdd(user.id);
-			navigation.goBack();
+			// Ajouter le membre à l'équipe
+			const result = await onMemberAdd(user.id);
+			
+			if (result.success) {
+				// Envoyer la notification via le backend
+				try {
+					const response = await fetch(`${API_BASE_URL}/teams/notify-member`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							userId: user.id,
+							teamId: teamId,
+							teamName: teamName
+						}),
+					});
+
+					if (!response.ok) {
+						console.warn('Échec de l\'envoi de la notification');
+					}
+				} catch (error) {
+					console.error('Erreur lors de l\'envoi de la notification:', error);
+				}
+
+				Toast.show({
+					type: 'success',
+					text1: 'Succès',
+					text2: 'Membre ajouté avec succès',
+					position: 'top',
+					visibilityTime: 3000,
+				});
+				
+				navigation.goBack();
+			} else {
+				Toast.show({
+					type: 'error',
+					text1: 'Erreur',
+					text2: "Impossible d'ajouter le membre",
+					position: 'top',
+					visibilityTime: 3000,
+				});
+			}
 		} catch (error) {
 			console.error("Erreur lors de l'ajout:", error);
 			Toast.show({
@@ -89,7 +133,7 @@ const AddMemberScreen = () => {
 				visibilityTime: 3000,
 			});
 		}
-	}, [currentMembers, onMemberAdd, navigation]);
+	}, [currentMembers, onMemberAdd, navigation, teamId, teamName]);
 
 	const renderHeader = useMemo(() => (
 		<View style={styles.header}>
