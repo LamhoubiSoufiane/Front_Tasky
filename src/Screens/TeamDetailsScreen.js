@@ -9,23 +9,29 @@ import {
 	Alert,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { loadTeamMembers, removeTeamMember, addTeamMember } from "../Redux/actions/teamActions";
+import {
+	loadTeamMembers,
+	removeTeamMember,
+	addTeamMember,
+} from "../Redux/actions/teamActions";
 import { loadTeamProjects } from "../Redux/actions/projectActions";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { sendTeamInvitationNotification, initializeNotifications } from '../Services/notificationService';
+//import { initializeNotifications } from "../Services/notificationService";
 
 const TeamDetailsScreen = () => {
 	const navigation = useNavigation();
 	const route = useRoute();
 	const dispatch = useDispatch();
-	
+
 	const { team } = route.params;
 	const user = useSelector((state) => state.auth.user);
 	const { loading, teamMembers } = useSelector((state) => state.team);
-	const { projects, loading: projectsLoading } = useSelector((state) => state.project);
+	const { projects, loading: projectsLoading } = useSelector(
+		(state) => state.project
+	);
 	const activeTab = route.params?.activeTab || "members";
 
 	const currentMembers = useMemo(() => {
@@ -48,10 +54,10 @@ const TeamDetailsScreen = () => {
 		}
 	}, [team?.id, dispatch, activeTab]);
 
-	useEffect(() => {
-		// Initialize notifications when component mounts
-		initializeNotifications();
-	}, []);
+	// useEffect(() => {
+	// 	// Initialize notifications when component mounts
+	// 	initializeNotifications();
+	// }, []);
 
 	const isTeamOwner = useMemo(() => {
 		return team?.owner?.id === user?.id;
@@ -76,7 +82,7 @@ const TeamDetailsScreen = () => {
 			});
 			return;
 		}
-		navigation?.navigate("AddMember", { 
+		navigation?.navigate("AddMember", {
 			teamId: team.id,
 			teamName: team.nom,
 			onMemberAdd: async (userId) => {
@@ -113,197 +119,233 @@ const TeamDetailsScreen = () => {
 					});
 					return { success: false, error: error.message };
 				}
-			}
+			},
 		});
 	}, [navigation, team?.id, team?.nom, isTeamOwner, dispatch]);
 
-	const handleProjectPress = useCallback((project) => {
-		navigation?.navigate("ProjectDetails", { project });
-	}, [navigation]);
+	const handleProjectPress = useCallback(
+		(project) => {
+			navigation?.navigate("ProjectDetails", { project });
+		},
+		[navigation]
+	);
 
-	const handleMemberPress = useCallback((member) => {
-		if (!isTeamOwner || member.id === user.id) return;
-		
-		Alert.alert(
-			"Gestion du membre",
-			"Que souhaitez-vous faire avec ce membre ?",
-			[
-				{
-					text: "Voir le profil",
-					onPress: () => navigation?.navigate("MemberDetails", { member }),
-				},
-				{
-					text: "Retirer de l'équipe",
-					onPress: () => handleRemoveMember(member),
-					style: "destructive",
-				},
-				{
-					text: "Annuler",
-					style: "cancel",
-				},
-			],
-		);
-	}, [navigation, isTeamOwner, user?.id]);
+	const handleMemberPress = useCallback(
+		(member) => {
+			if (!isTeamOwner || member.id === user.id) return;
 
-	const handleRemoveMember = useCallback(async (member) => {
-		if (!team?.id || !member?.id) return;
+			Alert.alert(
+				"Gestion du membre",
+				"Que souhaitez-vous faire avec ce membre ?",
+				[
+					{
+						text: "Voir le profil",
+						onPress: () => navigation?.navigate("MemberDetails", { member }),
+					},
+					{
+						text: "Retirer de l'équipe",
+						onPress: () => handleRemoveMember(member),
+						style: "destructive",
+					},
+					{
+						text: "Annuler",
+						style: "cancel",
+					},
+				]
+			);
+		},
+		[navigation, isTeamOwner, user?.id]
+	);
 
-		Alert.alert(
-			"Confirmation",
-			`Êtes-vous sûr de vouloir retirer ${member.username} de l'équipe ?`,
-			[
-				{
-					text: "Annuler",
-					style: "cancel",
-				},
-				{
-					text: "Confirmer",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							const result = await dispatch(removeTeamMember(team.id, member.id));
-							if (result.success) {
-								Toast.show({
-									type: "success",
-									text1: "Succès",
-									text2: "Membre retiré avec succès",
-									position: "top",
-									visibilityTime: 3000,
-								});
-								dispatch(loadTeamMembers(team.id));
-							} else {
+	const handleRemoveMember = useCallback(
+		async (member) => {
+			if (!team?.id || !member?.id) return;
+
+			Alert.alert(
+				"Confirmation",
+				`Êtes-vous sûr de vouloir retirer ${member.username} de l'équipe ?`,
+				[
+					{
+						text: "Annuler",
+						style: "cancel",
+					},
+					{
+						text: "Confirmer",
+						style: "destructive",
+						onPress: async () => {
+							try {
+								const result = await dispatch(
+									removeTeamMember(team.id, member.id)
+								);
+								if (result.success) {
+									Toast.show({
+										type: "success",
+										text1: "Succès",
+										text2: "Membre retiré avec succès",
+										position: "top",
+										visibilityTime: 3000,
+									});
+									dispatch(loadTeamMembers(team.id));
+								} else {
+									Toast.show({
+										type: "error",
+										text1: "Erreur",
+										text2: result.error || "Impossible de retirer le membre",
+										position: "top",
+										visibilityTime: 3000,
+									});
+								}
+							} catch (error) {
+								console.error("Erreur lors du retrait du membre:", error);
 								Toast.show({
 									type: "error",
 									text1: "Erreur",
-									text2: result.error || "Impossible de retirer le membre",
+									text2: "Impossible de retirer le membre",
 									position: "top",
 									visibilityTime: 3000,
 								});
 							}
-						} catch (error) {
-							console.error("Erreur lors du retrait du membre:", error);
-							Toast.show({
-								type: "error",
-								text1: "Erreur",
-								text2: "Impossible de retirer le membre",
-								position: "top",
-								visibilityTime: 3000,
-							});
-						}
+						},
 					},
-				},
-			],
-		);
-	}, [dispatch, team?.id]);
+				]
+			);
+		},
+		[dispatch, team?.id]
+	);
 
-	const handleTabPress = useCallback((tab) => {
-		navigation.setParams({ activeTab: tab });
-	}, [navigation]);
+	const handleTabPress = useCallback(
+		(tab) => {
+			navigation.setParams({ activeTab: tab });
+		},
+		[navigation]
+	);
 
-	const renderHeader = useMemo(() => (
-		<View style={styles.header}>
+	const renderHeader = useMemo(
+		() => (
+			<View style={styles.header}>
+				<TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+					<Icon name="arrow-left" size={24} color="#fff" />
+				</TouchableOpacity>
+				<Text style={styles.title}>{team?.nom}</Text>
+				<TouchableOpacity
+					style={styles.addButton}
+					onPress={
+						activeTab === "projects" ? handleAddProject : handleAddMember
+					}>
+					<Icon name="plus" size={24} color="#fff" />
+				</TouchableOpacity>
+			</View>
+		),
+		[handleBackPress, team?.nom, activeTab, handleAddProject, handleAddMember]
+	);
+
+	const renderTabs = useMemo(
+		() => (
+			<View style={styles.tabContainer}>
+				<TouchableOpacity
+					style={[styles.tab, activeTab === "projects" && styles.activeTab]}
+					onPress={() => handleTabPress("projects")}>
+					<Text
+						style={[
+							styles.tabText,
+							activeTab === "projects" && styles.activeTabText,
+						]}>
+						Projets
+					</Text>
+				</TouchableOpacity>
+				<TouchableOpacity
+					style={[styles.tab, activeTab === "members" && styles.activeTab]}
+					onPress={() => handleTabPress("members")}>
+					<Text
+						style={[
+							styles.tabText,
+							activeTab === "members" && styles.activeTabText,
+						]}>
+						Membres ({currentMembers.length})
+					</Text>
+				</TouchableOpacity>
+			</View>
+		),
+		[activeTab, handleTabPress, currentMembers.length]
+	);
+
+	const renderMemberItem = useCallback(
+		({ item: member }) => (
 			<TouchableOpacity
-				style={styles.backButton}
-				onPress={handleBackPress}>
-				<Icon name="arrow-left" size={24} color="#fff" />
+				style={styles.itemCard}
+				onPress={() => handleMemberPress(member)}>
+				<View style={styles.itemInfo}>
+					<Text style={styles.itemTitle}>{member.username}</Text>
+					<Text style={styles.itemSubtitle}>{member.email}</Text>
+					{member.id === team?.owner?.id && (
+						<Text style={styles.ownerTag}>Propriétaire</Text>
+					)}
+				</View>
+				{isTeamOwner && member.id !== user.id && (
+					<Icon name="dots-vertical" size={24} color={colors.primary} />
+				)}
 			</TouchableOpacity>
-			<Text style={styles.title}>{team?.nom}</Text>
-			<TouchableOpacity
-				style={styles.addButton}
-				onPress={activeTab === "projects" ? handleAddProject : handleAddMember}>
-				<Icon name="plus" size={24} color="#fff" />
-			</TouchableOpacity>
-		</View>
-	), [handleBackPress, team?.nom, activeTab, handleAddProject, handleAddMember]);
+		),
+		[handleMemberPress, isTeamOwner, user?.id, team?.owner?.id]
+	);
 
-	const renderTabs = useMemo(() => (
-		<View style={styles.tabContainer}>
-			<TouchableOpacity
-				style={[styles.tab, activeTab === "projects" && styles.activeTab]}
-				onPress={() => handleTabPress("projects")}>
-				<Text style={[styles.tabText, activeTab === "projects" && styles.activeTabText]}>
-					Projets
+	const EmptyMembers = useMemo(
+		() => (
+			<View style={styles.emptyContainer}>
+				<Text style={styles.emptyText}>Aucun membre dans cette équipe</Text>
+				<Text style={styles.emptySubText}>
+					Ajoutez des membres pour collaborer
 				</Text>
-			</TouchableOpacity>
-			<TouchableOpacity
-				style={[styles.tab, activeTab === "members" && styles.activeTab]}
-				onPress={() => handleTabPress("members")}>
-				<Text style={[styles.tabText, activeTab === "members" && styles.activeTabText]}>
-					Membres ({currentMembers.length})
-				</Text>
-			</TouchableOpacity>
-		</View>
-	), [activeTab, handleTabPress, currentMembers.length]);
-
-	const renderMemberItem = useCallback(({ item: member }) => (
-		<TouchableOpacity
-			style={styles.itemCard}
-			onPress={() => handleMemberPress(member)}>
-			<View style={styles.itemInfo}>
-				<Text style={styles.itemTitle}>{member.username}</Text>
-				<Text style={styles.itemSubtitle}>{member.email}</Text>
-				{member.id === team?.owner?.id && (
-					<Text style={styles.ownerTag}>Propriétaire</Text>
+				{isTeamOwner && (
+					<TouchableOpacity
+						style={[styles.addButton, styles.emptyButton]}
+						onPress={handleAddMember}>
+						<Text style={styles.buttonText}>Ajouter un membre</Text>
+					</TouchableOpacity>
 				)}
 			</View>
-			{isTeamOwner && member.id !== user.id && (
-				<Icon name="dots-vertical" size={24} color={colors.primary} />
-			)}
-		</TouchableOpacity>
-	), [handleMemberPress, isTeamOwner, user?.id, team?.owner?.id]);
+		),
+		[handleAddMember, isTeamOwner]
+	);
 
-	const EmptyMembers = useMemo(() => (
-		<View style={styles.emptyContainer}>
-			<Text style={styles.emptyText}>
-				Aucun membre dans cette équipe
-			</Text>
-			<Text style={styles.emptySubText}>
-				Ajoutez des membres pour collaborer
-			</Text>
-			{isTeamOwner && (
-				<TouchableOpacity
-					style={[styles.addButton, styles.emptyButton]}
-					onPress={handleAddMember}>
-					<Text style={styles.buttonText}>Ajouter un membre</Text>
-				</TouchableOpacity>
-			)}
-		</View>
-	), [handleAddMember, isTeamOwner]);
+	const renderProjectItem = useCallback(
+		({ item: project }) => (
+			<TouchableOpacity
+				style={styles.itemCard}
+				onPress={() => handleProjectPress(project)}>
+				<View style={styles.itemInfo}>
+					<Text style={styles.itemTitle}>{project.nom}</Text>
+					<Text style={styles.itemSubtitle}>
+						{project.description || "Aucune description"}
+					</Text>
+					{project.owner?.id === user?.id && (
+						<Text style={styles.ownerTag}>Propriétaire</Text>
+					)}
+				</View>
+				<Icon name="chevron-right" size={24} color={colors.primary} />
+			</TouchableOpacity>
+		),
+		[handleProjectPress, user?.id]
+	);
 
-	const renderProjectItem = useCallback(({ item: project }) => (
-		<TouchableOpacity
-			style={styles.itemCard}
-			onPress={() => handleProjectPress(project)}>
-			<View style={styles.itemInfo}>
-				<Text style={styles.itemTitle}>{project.nom}</Text>
-				<Text style={styles.itemSubtitle}>
-					{project.description || "Aucune description"}
+	const EmptyProjects = useMemo(
+		() => (
+			<View style={styles.emptyContainer}>
+				<Text style={styles.emptyText}>Aucun projet dans cette équipe</Text>
+				<Text style={styles.emptySubText}>
+					Créez un projet pour commencer à collaborer
 				</Text>
-				{project.owner?.id === user?.id && (
-					<Text style={styles.ownerTag}>Propriétaire</Text>
+				{isTeamOwner && (
+					<TouchableOpacity
+						style={[styles.addButton, styles.emptyButton]}
+						onPress={handleAddProject}>
+						<Text style={styles.buttonText}>Créer un projet</Text>
+					</TouchableOpacity>
 				)}
 			</View>
-			<Icon name="chevron-right" size={24} color={colors.primary} />
-		</TouchableOpacity>
-	), [handleProjectPress, user?.id]);
-
-	const EmptyProjects = useMemo(() => (
-		<View style={styles.emptyContainer}>
-			<Text style={styles.emptyText}>
-				Aucun projet dans cette équipe
-			</Text>
-			<Text style={styles.emptySubText}>
-				Créez un projet pour commencer à collaborer
-			</Text>
-			{isTeamOwner && (
-				<TouchableOpacity
-					style={[styles.addButton, styles.emptyButton]}
-					onPress={handleAddProject}>
-					<Text style={styles.buttonText}>Créer un projet</Text>
-				</TouchableOpacity>
-			)}
-		</View>
-	), [handleAddProject, isTeamOwner]);
+		),
+		[handleAddProject, isTeamOwner]
+	);
 
 	if (loading || projectsLoading) {
 		return (
@@ -319,10 +361,14 @@ const TeamDetailsScreen = () => {
 			{renderTabs}
 			<FlatList
 				data={activeTab === "members" ? currentMembers : currentProjects}
-				renderItem={activeTab === "members" ? renderMemberItem : renderProjectItem}
+				renderItem={
+					activeTab === "members" ? renderMemberItem : renderProjectItem
+				}
 				keyExtractor={(item) => item.id.toString()}
 				contentContainerStyle={styles.listContainer}
-				ListEmptyComponent={activeTab === "members" ? EmptyMembers : EmptyProjects}
+				ListEmptyComponent={
+					activeTab === "members" ? EmptyMembers : EmptyProjects
+				}
 				refreshing={activeTab === "members" ? loading : projectsLoading}
 				onRefresh={() => {
 					if (activeTab === "members") {
