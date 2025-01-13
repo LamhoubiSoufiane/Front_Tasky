@@ -16,6 +16,7 @@ import store from "./src/Redux/store";
 import Toast from "react-native-toast-message";
 import React, { useEffect } from "react";
 import { resetForms } from "./src/Redux/actions/authActions";
+import { usePushNotifications } from "./usePushNotifications";
 
 export default function App() {
 	const Stack = createStackNavigator();
@@ -24,6 +25,8 @@ export default function App() {
 		store.dispatch(resetForms());
 	}, []);
 
+	const { expoPushToken, notification } = usePushNotifications();
+	const data = JSON.stringify(notification, undefined, 2);
 	return (
 		<Provider store={store}>
 			<SafeAreaProvider>
