@@ -19,17 +19,35 @@
       }
     },
     "android": {
+      "useNextNotificationsApi": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.anonymous.Tasky"
+      "package": "com.anonymous.Tasky",
+      "googleServicesFile": "./android/app/google-services.json",
+      "notification": {
+        "icon": "./assets/notification-icon.png",
+        "color": "#FF231F7C",
+        "androidMode": "default",
+        "androidCollapsedTitle": "New Notification"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7e7f66d2-83ca-45fa-b1e0-83197e2eda54"
+      }
+    },
+    "notification": {
+      "icon": "./assets/logo.jpeg",
+      "color": "#FF231F7C",
+      "iosDisplayInForeground": true
+    }
   }
 }
