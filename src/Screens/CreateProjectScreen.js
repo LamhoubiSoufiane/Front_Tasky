@@ -7,6 +7,7 @@ import {
 	TextInput,
 	ScrollView,
 	ActivityIndicator,
+	Switch,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { createProject } from '../Redux/actions/projectActions';
@@ -14,17 +15,66 @@ import { colors } from '../assets/colors';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Toast from 'react-native-toast-message';
 import { useNavigation, useRoute } from '@react-navigation/native';
-/*import { Formik } from 'formik';
+import { Formik } from 'formik';
 import * as Yup from 'yup';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const validationSchema = Yup.object().shape({
 	nom: Yup.string()
 		.required('Le nom du projet est requis')
-		.min(3, 'Le nom doit contenir au moins 3 caractères'),
+		.min(3, 'Le nom doit contenir au moins 3 caractères')
+		.max(50, 'Le nom ne doit pas dépasser 50 caractères'),
 	description: Yup.string()
 		.required('La description est requise')
-		.min(10, 'La description doit contenir au moins 10 caractères'),
-});*/
+		.min(10, 'La description doit contenir au moins 10 caractères')
+		.max(500, 'La description ne doit pas dépasser 500 caractères'),
+	dateDebut: Yup.date()
+		.required('La date de début est requise')
+		.min(new Date(), 'La date de début doit être future'),
+	dateFin: Yup.date()
+		.required('La date de fin est requise')
+		.min(Yup.ref('dateDebut'), 'La date de fin doit être après la date de début'),
+	budget: Yup.number()
+		.positive('Le budget doit être positif')
+		.nullable(),
+	isPublic: Yup.boolean(),
+	priorite: Yup.string()
+		.oneOf(['BASSE', 'MOYENNE', 'HAUTE'], 'Priorité invalide')
+		.required('La priorité est requise'),
+});
+
+const initialValues = {
+	nom: '',
+	description: '',
+	dateDebut: new Date(),
+	dateFin: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+	budget: '',
+	isPublic: false,
+	priorite: 'MOYENNE',
+};
+
+const PrioritySelector = ({ value, onChange, error, touched }) => (
+	<View style={styles.priorityContainer}>
+		{['BASSE', 'MOYENNE', 'HAUTE'].map((priority) => (
+			<TouchableOpacity
+				key={priority}
+				style={[
+					styles.priorityButton,
+					value === priority && styles.priorityButtonActive,
+					touched && error && styles.priorityButtonError,
+				]}
+				onPress={() => onChange(priority)}
+			>
+				<Text style={[
+					styles.priorityText,
+					value === priority && styles.priorityTextActive
+				]}>
+					{priority}
+				</Text>
+			</TouchableOpacity>
+		))}
+	</View>
+);
 
 const CreateProjectScreen = () => {
 	const navigation = useNavigation();
@@ -45,6 +95,7 @@ const CreateProjectScreen = () => {
 				...values,
 				teamId,
 				ownerId: user.id,
+				budget: values.budget ? parseFloat(values.budget) : null,
 			};
 
 			const result = await dispatch(createProject(projectData));
@@ -105,7 +156,12 @@ const CreateProjectScreen = () => {
 				style={styles.formContainer}
 				keyboardShouldPersistTaps="handled"
 			>
-					{({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+				<Formik
+					initialValues={initialValues}
+					validationSchema={validationSchema}
+					onSubmit={handleSubmit}
+				>
+					{({ handleChange, handleBlur, handleSubmit, setFieldValue, values, errors, touched }) => (
 						<View style={styles.form}>
 							<View style={styles.inputContainer}>
 								<Text style={styles.label}>Nom du projet</Text>
@@ -118,6 +174,7 @@ const CreateProjectScreen = () => {
 									value={values.nom}
 									onChangeText={handleChange('nom')}
 									onBlur={handleBlur('nom')}
+									maxLength={50}
 								/>
 								{touched.nom && errors.nom && (
 									<Text style={styles.errorText}>{errors.nom}</Text>
@@ -139,10 +196,82 @@ const CreateProjectScreen = () => {
 									multiline
 									numberOfLines={4}
 									textAlignVertical="top"
+									maxLength={500}
 								/>
 								{touched.description && errors.description && (
 									<Text style={styles.errorText}>{errors.description}</Text>
 								)}
+								<Text style={styles.charCount}>
+									{values.description.length}/500
+								</Text>
+							</View>
+
+							<View style={styles.inputContainer}>
+								<Text style={styles.label}>Priorité</Text>
+								<PrioritySelector
+									value={values.priorite}
+									onChange={(value) => setFieldValue('priorite', value)}
+									error={errors.priorite}
+									touched={touched.priorite}
+								/>
+								{touched.priorite && errors.priorite && (
+									<Text style={styles.errorText}>{errors.priorite}</Text>
+								)}
+							</View>
+
+							<View style={styles.dateContainer}>
+								<View style={styles.dateInput}>
+									<Text style={styles.label}>Date de début</Text>
+									<DateTimePicker
+										value={values.dateDebut}
+										mode="date"
+										display="default"
+										onChange={(event, date) => {
+											if (date) setFieldValue('dateDebut', date);
+										}}
+										minimumDate={new Date()}
+									/>
+								</View>
+								<View style={styles.dateInput}>
+									<Text style={styles.label}>Date de fin</Text>
+									<DateTimePicker
+										value={values.dateFin}
+										mode="date"
+										display="default"
+										onChange={(event, date) => {
+											if (date) setFieldValue('dateFin', date);
+										}}
+										minimumDate={values.dateDebut}
+									/>
+								</View>
+							</View>
+
+							<View style={styles.inputContainer}>
+								<Text style={styles.label}>Budget (optionnel)</Text>
+								<TextInput
+									style={[
+										styles.input,
+										touched.budget && errors.budget && styles.inputError,
+									]}
+									placeholder="Budget estimé"
+									value={values.budget}
+									onChangeText={handleChange('budget')}
+									onBlur={handleBlur('budget')}
+									keyboardType="numeric"
+								/>
+								{touched.budget && errors.budget && (
+									<Text style={styles.errorText}>{errors.budget}</Text>
+								)}
+							</View>
+
+							<View style={styles.switchContainer}>
+								<Text style={styles.label}>Projet public</Text>
+								<Switch
+									value={values.isPublic}
+									onValueChange={(value) => setFieldValue('isPublic', value)}
+									trackColor={{ false: '#767577', true: colors.primary }}
+									thumbColor={values.isPublic ? '#fff' : '#f4f3f4'}
+								/>
 							</View>
 
 							<TouchableOpacity
@@ -156,6 +285,7 @@ const CreateProjectScreen = () => {
 							</TouchableOpacity>
 						</View>
 					)}
+				</Formik>
 			</ScrollView>
 		</View>
 	);
@@ -231,6 +361,56 @@ const styles = StyleSheet.create({
 		color: 'red',
 		fontSize: 12,
 		marginTop: 5,
+	},
+	charCount: {
+		fontSize: 12,
+		color: '#666',
+		textAlign: 'right',
+		marginTop: 4,
+	},
+	priorityContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginTop: 8,
+	},
+	priorityButton: {
+		flex: 1,
+		paddingVertical: 10,
+		paddingHorizontal: 16,
+		borderRadius: 8,
+		backgroundColor: '#f5f5f5',
+		marginHorizontal: 4,
+		alignItems: 'center',
+	},
+	priorityButtonActive: {
+		backgroundColor: colors.primary,
+	},
+	priorityButtonError: {
+		borderColor: 'red',
+		borderWidth: 1,
+	},
+	priorityText: {
+		color: '#666',
+		fontWeight: '600',
+	},
+	priorityTextActive: {
+		color: '#fff',
+	},
+	dateContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginBottom: 20,
+	},
+	dateInput: {
+		flex: 1,
+		marginHorizontal: 4,
+	},
+	switchContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 20,
+		paddingVertical: 8,
 	},
 	submitButton: {
 		backgroundColor: colors.primary,
