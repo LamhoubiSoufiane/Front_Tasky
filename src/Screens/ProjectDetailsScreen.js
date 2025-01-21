@@ -1,19 +1,151 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
 	View,
 	Text,
 	StyleSheet,
 	TouchableOpacity,
 	FlatList,
+	Modal,
+	TextInput,
+	ScrollView,
 	ActivityIndicator,
 	Alert,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { loadProjectMembers, removeProjectMember, addProjectMember } from "../Redux/actions/projectActions";
+import { createTask, assignTask } from '../Redux/actions/taskActions';
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
+
+const TaskCard = React.memo(({ task, onPress }) => {
+	const statusColors = {
+		'EN_ATTENTE': '#FFA500',
+		'EN_COURS': '#4CAF50',
+		'TERMINE': '#2196F3',
+	};
+
+	return (
+		<TouchableOpacity style={styles.taskCard} onPress={() => onPress(task)}>
+			<View style={styles.taskHeader}>
+				<Text style={styles.taskTitle}>{task.titre}</Text>
+				<View style={[styles.statusBadge, { backgroundColor: statusColors[task.status] }]}>
+					<Text style={styles.statusText}>{task.status}</Text>
+				</View>
+			</View>
+			<Text style={styles.taskDescription} numberOfLines={2}>
+				{task.description}
+			</Text>
+			{task.assignedTo && (
+				<View style={styles.assigneeContainer}>
+					<Icon name="account" size={20} color={colors.textGray} />
+					<Text style={styles.assigneeText}>{task.assignedTo.name}</Text>
+				</View>
+			)}
+		</TouchableOpacity>
+	);
+});
+
+const CreateTaskModal = React.memo(({ visible, onClose, onSubmit }) => {
+	const [title, setTitle] = useState('');
+	const [description, setDescription] = useState('');
+	const [selectedMember, setSelectedMember] = useState(null);
+	const { members } = useSelector(state => state.project);
+
+	const handleSubmit = () => {
+		if (!title.trim() || !description.trim()) {
+			Toast.show({
+				type: 'error',
+				text1: 'Erreur',
+				text2: 'Veuillez remplir tous les champs',
+			});
+			return;
+		}
+		onSubmit({
+			titre: title,
+			description,
+			assignedToId: selectedMember?.id,
+		});
+		setTitle('');
+		setDescription('');
+		setSelectedMember(null);
+	};
+
+	return (
+		<Modal
+			visible={visible}
+			animationType="slide"
+			transparent={true}
+			onRequestClose={onClose}
+		>
+			<View style={styles.modalContainer}>
+				<View style={styles.modalContent}>
+					<View style={styles.modalHeader}>
+						<Text style={styles.modalTitle}>Nouvelle tâche</Text>
+						<TouchableOpacity onPress={onClose}>
+							<Icon name="close" size={24} color="#333" />
+						</TouchableOpacity>
+					</View>
+
+					<ScrollView>
+						<View style={styles.inputContainer}>
+							<Text style={styles.label}>Titre</Text>
+							<TextInput
+								style={styles.input}
+								value={title}
+								onChangeText={setTitle}
+								placeholder="Titre de la tâche"
+							/>
+						</View>
+
+						<View style={styles.inputContainer}>
+							<Text style={styles.label}>Description</Text>
+							<TextInput
+								style={[styles.input, styles.textArea]}
+								value={description}
+								onChangeText={setDescription}
+								placeholder="Description de la tâche"
+								multiline
+								numberOfLines={4}
+							/>
+						</View>
+
+						<View style={styles.inputContainer}>
+							<Text style={styles.label}>Assigner à</Text>
+							<View style={styles.membersList}>
+								{members.map(member => (
+									<TouchableOpacity
+										key={member.id}
+										style={[
+											styles.memberChip,
+											selectedMember?.id === member.id && styles.selectedMemberChip
+										]}
+										onPress={() => setSelectedMember(member)}
+									>
+										<Text style={[
+											styles.memberChipText,
+											selectedMember?.id === member.id && styles.selectedMemberChipText
+										]}>
+											{member.name}
+										</Text>
+									</TouchableOpacity>
+								))}
+							</View>
+						</View>
+
+						<TouchableOpacity
+							style={styles.submitButton}
+							onPress={handleSubmit}
+						>
+							<Text style={styles.submitButtonText}>Créer la tâche</Text>
+						</TouchableOpacity>
+					</ScrollView>
+				</View>
+			</View>
+		</Modal>
+	);
+});
 
 const ProjectDetailsScreen = () => {
 	const navigation = useNavigation();
@@ -23,6 +155,7 @@ const ProjectDetailsScreen = () => {
 	const { project } = route.params;
 	const user = useSelector((state) => state.auth.user);
 	const { projectMembers, loading } = useSelector((state) => state.project);
+	const [isCreateModalVisible, setCreateModalVisible] = useState(false);
 
 	const currentMembers = useMemo(() => {
 		if (!project?.id) return [];
@@ -160,6 +293,42 @@ const ProjectDetailsScreen = () => {
 		);
 	}, [dispatch, project?.id]);
 
+	const handleCreateTask = useCallback(async (taskData) => {
+		try {
+			const result = await dispatch(createTask({
+				...taskData,
+				projectId: project.id,
+				status: 'EN_ATTENTE'
+			}));
+
+			if (result.success) {
+				Toast.show({
+					type: 'success',
+					text1: 'Succès',
+					text2: 'Tâche créée avec succès',
+				});
+				setCreateModalVisible(false);
+			} else {
+				Toast.show({
+					type: 'error',
+					text1: 'Erreur',
+					text2: result.error || 'Impossible de créer la tâche',
+				});
+			}
+		} catch (error) {
+			console.error('Erreur lors de la création de la tâche:', error);
+			Toast.show({
+				type: 'error',
+				text1: 'Erreur',
+				text2: 'Une erreur est survenue',
+			});
+		}
+	}, [dispatch, project.id]);
+
+	const handleTaskPress = useCallback((task) => {
+		navigation.navigate('TaskDetails', { taskId: task.id });
+	}, [navigation]);
+
 	const renderHeader = useMemo(() => (
 		<View style={styles.header}>
 			<TouchableOpacity
@@ -171,7 +340,7 @@ const ProjectDetailsScreen = () => {
 			{isProjectOwner && (
 				<TouchableOpacity
 					style={styles.addButton}
-					onPress={handleAddMember}>
+					onPress={() => setCreateModalVisible(true)}>
 					<Icon name="plus" size={24} color="#fff" />
 				</TouchableOpacity>
 			)}
@@ -213,6 +382,17 @@ const ProjectDetailsScreen = () => {
 		</View>
 	), [handleAddMember, isProjectOwner]);
 
+	const renderTask = useCallback(({ item }) => (
+		<TaskCard task={item} onPress={handleTaskPress} />
+	), [handleTaskPress]);
+
+	const ListEmptyComponent = useMemo(() => (
+		<View style={styles.emptyContainer}>
+			<Icon name="clipboard-text-outline" size={50} color={colors.textGray} />
+			<Text style={styles.emptyText}>Aucune tâche pour le moment</Text>
+		</View>
+	), []);
+
 	if (loading) {
 		return (
 			<View style={styles.loadingContainer}>
@@ -242,6 +422,23 @@ const ProjectDetailsScreen = () => {
 					onRefresh={() => dispatch(loadProjectMembers(project.id))}
 				/>
 			</View>
+			<View style={styles.tasksContainer}>
+				<Text style={styles.tasksTitle}>Tâches du projet</Text>
+				<FlatList
+					data={projectMembers[project.id] || []}
+					renderItem={renderTask}
+					keyExtractor={(item) => item.id.toString()}
+					contentContainerStyle={styles.tasksList}
+					ListEmptyComponent={ListEmptyComponent}
+					refreshing={loading}
+					onRefresh={() => dispatch(loadProjectMembers(project.id))}
+				/>
+			</View>
+			<CreateTaskModal
+				visible={isCreateModalVisible}
+				onClose={() => setCreateModalVisible(false)}
+				onSubmit={handleCreateTask}
+			/>
 		</View>
 	);
 };
@@ -382,6 +579,143 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 		fontWeight: "500",
 		marginTop: 5,
+	},
+	tasksContainer: {
+		flex: 1,
+	},
+	tasksTitle: {
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#333",
+		padding: 20,
+		paddingBottom: 10,
+	},
+	tasksList: {
+		padding: 15,
+	},
+	taskCard: {
+		backgroundColor: '#fff',
+		borderRadius: 12,
+		padding: 16,
+		marginBottom: 16,
+		elevation: 3,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+	},
+	taskHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 8,
+	},
+	taskTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#333',
+		flex: 1,
+	},
+	statusBadge: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+	},
+	statusText: {
+		color: '#fff',
+		fontSize: 12,
+		fontWeight: '500',
+	},
+	taskDescription: {
+		fontSize: 14,
+		color: colors.textGray,
+		marginBottom: 12,
+	},
+	assigneeContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	assigneeText: {
+		marginLeft: 4,
+		color: colors.textGray,
+		fontSize: 14,
+	},
+	modalContainer: {
+		flex: 1,
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		justifyContent: 'flex-end',
+	},
+	modalContent: {
+		backgroundColor: '#fff',
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		padding: 20,
+		maxHeight: '80%',
+	},
+	modalHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 20,
+	},
+	modalTitle: {
+		fontSize: 20,
+		fontWeight: 'bold',
+		color: '#333',
+	},
+	inputContainer: {
+		marginBottom: 20,
+	},
+	label: {
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#333',
+		marginBottom: 8,
+	},
+	input: {
+		backgroundColor: '#f5f5f5',
+		borderRadius: 8,
+		padding: 12,
+		fontSize: 16,
+	},
+	textArea: {
+		height: 120,
+		textAlignVertical: 'top',
+	},
+	membersList: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		marginTop: 8,
+	},
+	memberChip: {
+		backgroundColor: '#f5f5f5',
+		borderRadius: 20,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		marginRight: 8,
+		marginBottom: 8,
+	},
+	selectedMemberChip: {
+		backgroundColor: colors.primary,
+	},
+	memberChipText: {
+		color: '#333',
+		fontSize: 14,
+	},
+	selectedMemberChipText: {
+		color: '#fff',
+	},
+	submitButton: {
+		backgroundColor: colors.primary,
+		borderRadius: 8,
+		padding: 16,
+		alignItems: 'center',
+		marginTop: 20,
+	},
+	submitButtonText: {
+		color: '#fff',
+		fontSize: 16,
+		fontWeight: '600',
 	},
 });
 

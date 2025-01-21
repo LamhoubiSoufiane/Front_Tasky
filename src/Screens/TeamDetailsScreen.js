@@ -19,7 +19,32 @@ import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
-//import { initializeNotifications } from "../Services/notificationService";
+//import { sendTeamInvitationNotification, initializeNotifications } from '../Services/notificationService';
+
+const ProjectCard = React.memo(({ project, onPress }) => (
+	<TouchableOpacity 
+		style={styles.projectCard}
+		onPress={() => onPress(project)}
+	>
+		<View style={styles.projectHeader}>
+			<Text style={styles.projectTitle}>{project.nom}</Text>
+			<Icon name="chevron-right" size={24} color={colors.primary} />
+		</View>
+		<Text style={styles.projectDescription} numberOfLines={2}>
+			{project.description}
+		</Text>
+		<View style={styles.projectFooter}>
+			<View style={styles.projectStats}>
+				<Icon name="account-group" size={20} color={colors.textGray} />
+				<Text style={styles.statsText}>{project.members?.length || 0} membres</Text>
+			</View>
+			<View style={styles.projectStats}>
+				<Icon name="checkbox-marked" size={20} color={colors.textGray} />
+				<Text style={styles.statsText}>{project.tasks?.length || 0} tâches</Text>
+			</View>
+		</View>
+	</TouchableOpacity>
+));
 
 const TeamDetailsScreen = () => {
 	const navigation = useNavigation();
@@ -328,24 +353,27 @@ const TeamDetailsScreen = () => {
 		[handleProjectPress, user?.id]
 	);
 
-	const EmptyProjects = useMemo(
-		() => (
-			<View style={styles.emptyContainer}>
-				<Text style={styles.emptyText}>Aucun projet dans cette équipe</Text>
-				<Text style={styles.emptySubText}>
-					Créez un projet pour commencer à collaborer
-				</Text>
-				{isTeamOwner && (
-					<TouchableOpacity
-						style={[styles.addButton, styles.emptyButton]}
-						onPress={handleAddProject}>
-						<Text style={styles.buttonText}>Créer un projet</Text>
-					</TouchableOpacity>
-				)}
-			</View>
-		),
-		[handleAddProject, isTeamOwner]
-	);
+	const renderProject = useCallback(({ item }) => (
+		<ProjectCard project={item} onPress={handleProjectPress} />
+	), [handleProjectPress]);
+
+	const EmptyProjects = useMemo(() => (
+		<View style={styles.emptyContainer}>
+			<Text style={styles.emptyText}>
+				Aucun projet dans cette équipe
+			</Text>
+			<Text style={styles.emptySubText}>
+				Créez un projet pour commencer à collaborer
+			</Text>
+			{isTeamOwner && (
+				<TouchableOpacity
+					style={[styles.addButton, styles.emptyButton]}
+					onPress={handleAddProject}>
+					<Text style={styles.buttonText}>Créer un projet</Text>
+				</TouchableOpacity>
+			)}
+		</View>
+	), [handleAddProject, isTeamOwner]);
 
 	if (loading || projectsLoading) {
 		return (
@@ -361,9 +389,7 @@ const TeamDetailsScreen = () => {
 			{renderTabs}
 			<FlatList
 				data={activeTab === "members" ? currentMembers : currentProjects}
-				renderItem={
-					activeTab === "members" ? renderMemberItem : renderProjectItem
-				}
+				renderItem={activeTab === "members" ? renderMemberItem : renderProject}
 				keyExtractor={(item) => item.id.toString()}
 				contentContainerStyle={styles.listContainer}
 				ListEmptyComponent={
@@ -518,6 +544,46 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 		fontWeight: "500",
 		marginTop: 5,
+	},
+	projectCard: {
+		backgroundColor: '#fff',
+		borderRadius: 12,
+		padding: 16,
+		marginBottom: 16,
+		elevation: 3,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+	},
+	projectHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 8,
+	},
+	projectTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#333',
+	},
+	projectDescription: {
+		fontSize: 14,
+		color: colors.textGray,
+		marginBottom: 12,
+	},
+	projectFooter: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+	},
+	projectStats: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
+	statsText: {
+		marginLeft: 4,
+		color: colors.textGray,
+		fontSize: 14,
 	},
 });
 

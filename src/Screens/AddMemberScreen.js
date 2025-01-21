@@ -7,14 +7,16 @@ import {
 	TextInput,
 	FlatList,
 	ActivityIndicator,
-} from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { searchUsers } from "../Redux/actions/userActions";
-import { colors } from "../assets/colors";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Toast from "react-native-toast-message";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { API_BASE_URL } from "../config";
+} from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { searchUsers } from '../Redux/actions/userActions';
+import { colors } from '../assets/colors';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Toast from 'react-native-toast-message';
+import { useNavigation, useRoute } from '@react-navigation/native';
+//import { initializeNotifications } from '../Services/notificationService';
+import { API_BASE_URL } from '../config';
+
 
 const AddMemberScreen = () => {
 	const navigation = useNavigation();
