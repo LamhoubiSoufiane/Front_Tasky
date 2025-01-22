@@ -48,6 +48,7 @@
       "icon": "./assets/logo.jpeg",
       "color": "#FF231F7C",
       "iosDisplayInForeground": true
-    }
+    },
+    "owner": "saleh000"
   }
 }
