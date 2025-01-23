@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import {
 	View,
 	Text,
@@ -65,10 +65,7 @@ const PrioritySelector = ({ value, onChange, error, touched }) => (
 				]}
 				onPress={() => onChange(priority)}
 			>
-				<Text style={[
-					styles.priorityText,
-					value === priority && styles.priorityTextActive
-				]}>
+				<Text style={[styles.priorityText, value === priority && styles.priorityTextActive]}>
 					{priority}
 				</Text>
 			</TouchableOpacity>
@@ -80,10 +77,13 @@ const CreateProjectScreen = () => {
 	const navigation = useNavigation();
 	const route = useRoute();
 	const dispatch = useDispatch();
-	
+
 	const { teamId } = route.params;
 	const { loading } = useSelector((state) => state.project);
 	const user = useSelector((state) => state.auth.user);
+
+	const [showStartDate, setShowStartDate] = useState(false);
+	const [showEndDate, setShowEndDate] = useState(false);
 
 	const handleBackPress = useCallback(() => {
 		navigation?.goBack();
@@ -91,6 +91,17 @@ const CreateProjectScreen = () => {
 
 	const handleSubmit = useCallback(async (values) => {
 		try {
+			if (!user) {
+				Toast.show({
+					type: 'error',
+					text1: 'Erreur',
+					text2: "Utilisateur non connecté",
+					position: 'top',
+					visibilityTime: 3000,
+				});
+				return;
+			}
+
 			const projectData = {
 				...values,
 				teamId,
@@ -127,7 +138,7 @@ const CreateProjectScreen = () => {
 				visibilityTime: 3000,
 			});
 		}
-	}, [dispatch, teamId, user?.id, navigation]);
+	}, [dispatch, teamId, user, navigation]);
 
 	const renderHeader = useMemo(() => (
 		<View style={styles.header}>
@@ -152,7 +163,7 @@ const CreateProjectScreen = () => {
 	return (
 		<View style={styles.container}>
 			{renderHeader}
-			<ScrollView 
+			<ScrollView
 				style={styles.formContainer}
 				keyboardShouldPersistTaps="handled"
 			>
@@ -222,27 +233,49 @@ const CreateProjectScreen = () => {
 							<View style={styles.dateContainer}>
 								<View style={styles.dateInput}>
 									<Text style={styles.label}>Date de début</Text>
-									<DateTimePicker
-										value={values.dateDebut}
-										mode="date"
-										display="default"
-										onChange={(event, date) => {
-											if (date) setFieldValue('dateDebut', date);
-										}}
-										minimumDate={new Date()}
-									/>
+									<TouchableOpacity
+										style={styles.dateButton}
+										onPress={() => setShowStartDate(true)}
+									>
+										<Text style={styles.dateButtonText}>
+											{values.dateDebut.toLocaleDateString()}
+										</Text>
+									</TouchableOpacity>
+									{showStartDate && (
+										<DateTimePicker
+											value={values.dateDebut}
+											mode="date"
+											display="default"
+											onChange={(event, date) => {
+												setShowStartDate(false);
+												if (date) setFieldValue('dateDebut', date);
+											}}
+											minimumDate={new Date()}
+										/>
+									)}
 								</View>
 								<View style={styles.dateInput}>
 									<Text style={styles.label}>Date de fin</Text>
-									<DateTimePicker
-										value={values.dateFin}
-										mode="date"
-										display="default"
-										onChange={(event, date) => {
-											if (date) setFieldValue('dateFin', date);
-										}}
-										minimumDate={values.dateDebut}
-									/>
+									<TouchableOpacity
+										style={styles.dateButton}
+										onPress={() => setShowEndDate(true)}
+									>
+										<Text style={styles.dateButtonText}>
+											{values.dateFin.toLocaleDateString()}
+										</Text>
+									</TouchableOpacity>
+									{showEndDate && (
+										<DateTimePicker
+											value={values.dateFin}
+											mode="date"
+											display="default"
+											onChange={(event, date) => {
+												setShowEndDate(false);
+												if (date) setFieldValue('dateFin', date);
+											}}
+											minimumDate={values.dateDebut}
+										/>
+									)}
 								</View>
 							</View>
 
@@ -253,7 +286,7 @@ const CreateProjectScreen = () => {
 										styles.input,
 										touched.budget && errors.budget && styles.inputError,
 									]}
-									placeholder="Budget estimé"
+									placeholder="Entrez le budget"
 									value={values.budget}
 									onChangeText={handleChange('budget')}
 									onBlur={handleBlur('budget')}
@@ -269,19 +302,16 @@ const CreateProjectScreen = () => {
 								<Switch
 									value={values.isPublic}
 									onValueChange={(value) => setFieldValue('isPublic', value)}
-									trackColor={{ false: '#767577', true: colors.primary }}
-									thumbColor={values.isPublic ? '#fff' : '#f4f3f4'}
+									trackColor={{ false: colors.textGray, true: colors.primary }}
+									thumbColor={values.isPublic ? colors.white : colors.white}
 								/>
 							</View>
 
 							<TouchableOpacity
 								style={styles.submitButton}
 								onPress={handleSubmit}
-								disabled={loading}
 							>
-								<Text style={styles.submitButtonText}>
-									{loading ? 'Création...' : 'Créer le projet'}
-								</Text>
+								<Text style={styles.submitButtonText}>Créer le projet</Text>
 							</TouchableOpacity>
 						</View>
 					)}
@@ -405,6 +435,19 @@ const styles = StyleSheet.create({
 		flex: 1,
 		marginHorizontal: 4,
 	},
+	dateButton: {
+		backgroundColor: '#fff',
+		borderWidth: 1,
+		borderColor: '#ddd',
+		borderRadius: 8,
+		padding: 12,
+		fontSize: 16,
+		color: '#333',
+	},
+	dateButtonText: {
+		fontSize: 16,
+		color: '#333',
+	},
 	switchContainer: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -426,4 +469,4 @@ const styles = StyleSheet.create({
 	},
 });
 
-export default CreateProjectScreen; 
+export default CreateProjectScreen;

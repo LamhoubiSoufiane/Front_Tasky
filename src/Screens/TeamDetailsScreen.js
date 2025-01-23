@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from "react";
+import React, { useMemo, useCallback, useEffect, useState } from "react";
 import {
 	View,
 	Text,
@@ -19,7 +19,6 @@ import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
-//import { sendTeamInvitationNotification, initializeNotifications } from '../Services/notificationService';
 
 const ProjectCard = React.memo(({ project, onPress }) => (
 	<TouchableOpacity 
@@ -57,7 +56,6 @@ const TeamDetailsScreen = () => {
 	const { projects, loading: projectsLoading } = useSelector(
 		(state) => state.project
 	);
-	const activeTab = route.params?.activeTab || "members";
 
 	const currentMembers = useMemo(() => {
 		if (!team?.id) return [];
@@ -69,20 +67,14 @@ const TeamDetailsScreen = () => {
 		return projects[team?.id] || [];
 	}, [projects, team?.id]);
 
+	const [activeTab, setActiveTab] = useState("members");
+
 	useEffect(() => {
 		if (team?.id) {
-			if (activeTab === "members") {
-				dispatch(loadTeamMembers(team.id));
-			} else {
-				dispatch(loadTeamProjects(team.id));
-			}
+			dispatch(loadTeamMembers(team.id));
+			dispatch(loadTeamProjects(team.id));
 		}
-	}, [team?.id, dispatch, activeTab]);
-
-	// useEffect(() => {
-	// 	// Initialize notifications when component mounts
-	// 	initializeNotifications();
-	// }, []);
+	}, [team?.id, dispatch]);
 
 	const isTeamOwner = useMemo(() => {
 		return team?.owner?.id === user?.id;
@@ -238,12 +230,9 @@ const TeamDetailsScreen = () => {
 		[dispatch, team?.id]
 	);
 
-	const handleTabPress = useCallback(
-		(tab) => {
-			navigation.setParams({ activeTab: tab });
-		},
-		[navigation]
-	);
+	const handleTabChange = useCallback((tab) => {
+		setActiveTab(tab);
+	}, []);
 
 	const renderHeader = useMemo(
 		() => (
@@ -264,41 +253,37 @@ const TeamDetailsScreen = () => {
 		[handleBackPress, team?.nom, activeTab, handleAddProject, handleAddMember]
 	);
 
-	const renderTabs = useMemo(
-		() => (
-			<View style={styles.tabContainer}>
-				<TouchableOpacity
-					style={[styles.tab, activeTab === "projects" && styles.activeTab]}
-					onPress={() => handleTabPress("projects")}>
-					<Text
-						style={[
-							styles.tabText,
-							activeTab === "projects" && styles.activeTabText,
-						]}>
-						Projets
-					</Text>
-				</TouchableOpacity>
-				<TouchableOpacity
-					style={[styles.tab, activeTab === "members" && styles.activeTab]}
-					onPress={() => handleTabPress("members")}>
-					<Text
-						style={[
-							styles.tabText,
-							activeTab === "members" && styles.activeTabText,
-						]}>
-						Membres ({currentMembers.length})
-					</Text>
-				</TouchableOpacity>
-			</View>
-		),
-		[activeTab, handleTabPress, currentMembers.length]
-	);
+	const renderTabs = useMemo(() => (
+		<View style={styles.tabContainer}>
+			<TouchableOpacity
+				style={[styles.tab, activeTab === "members" && styles.activeTab]}
+				onPress={() => handleTabChange("members")}
+			>
+				<Text
+					style={[styles.tabText, activeTab === "members" && styles.activeTabText]}
+				>
+					Membres ({currentMembers.length})
+				</Text>
+			</TouchableOpacity>
+			<TouchableOpacity
+				style={[styles.tab, activeTab === "projects" && styles.activeTab]}
+				onPress={() => handleTabChange("projects")}
+			>
+				<Text
+					style={[styles.tabText, activeTab === "projects" && styles.activeTabText]}
+				>
+					Projets
+				</Text>
+			</TouchableOpacity>
+		</View>
+	), [activeTab, handleTabChange, currentMembers.length]);
 
 	const renderMemberItem = useCallback(
 		({ item: member }) => (
 			<TouchableOpacity
 				style={styles.itemCard}
-				onPress={() => handleMemberPress(member)}>
+				onPress={() => handleMemberPress(member)}
+			>
 				<View style={styles.itemInfo}>
 					<Text style={styles.itemTitle}>{member.username}</Text>
 					<Text style={styles.itemSubtitle}>{member.email}</Text>
@@ -314,30 +299,12 @@ const TeamDetailsScreen = () => {
 		[handleMemberPress, isTeamOwner, user?.id, team?.owner?.id]
 	);
 
-	const EmptyMembers = useMemo(
-		() => (
-			<View style={styles.emptyContainer}>
-				<Text style={styles.emptyText}>Aucun membre dans cette équipe</Text>
-				<Text style={styles.emptySubText}>
-					Ajoutez des membres pour collaborer
-				</Text>
-				{isTeamOwner && (
-					<TouchableOpacity
-						style={[styles.addButton, styles.emptyButton]}
-						onPress={handleAddMember}>
-						<Text style={styles.buttonText}>Ajouter un membre</Text>
-					</TouchableOpacity>
-				)}
-			</View>
-		),
-		[handleAddMember, isTeamOwner]
-	);
-
 	const renderProjectItem = useCallback(
 		({ item: project }) => (
 			<TouchableOpacity
 				style={styles.itemCard}
-				onPress={() => handleProjectPress(project)}>
+				onPress={() => handleProjectPress(project)}
+			>
 				<View style={styles.itemInfo}>
 					<Text style={styles.itemTitle}>{project.nom}</Text>
 					<Text style={styles.itemSubtitle}>
@@ -353,9 +320,25 @@ const TeamDetailsScreen = () => {
 		[handleProjectPress, user?.id]
 	);
 
-	const renderProject = useCallback(({ item }) => (
-		<ProjectCard project={item} onPress={handleProjectPress} />
-	), [handleProjectPress]);
+	const EmptyMembers = useMemo(
+		() => (
+			<View style={styles.emptyContainer}>
+				<Text style={styles.emptyText}>Aucun membre dans cette équipe</Text>
+				<Text style={styles.emptySubText}>
+					Ajoutez des membres pour collaborer
+				</Text>
+				{isTeamOwner && (
+					<TouchableOpacity
+						style={[styles.addButton, styles.emptyButton]}
+						onPress={handleAddMember}
+					>
+						<Text style={styles.buttonText}>Ajouter un membre</Text>
+					</TouchableOpacity>
+				)}
+			</View>
+		),
+		[handleAddMember, isTeamOwner]
+	);
 
 	const EmptyProjects = useMemo(() => (
 		<View style={styles.emptyContainer}>
@@ -368,12 +351,41 @@ const TeamDetailsScreen = () => {
 			{isTeamOwner && (
 				<TouchableOpacity
 					style={[styles.addButton, styles.emptyButton]}
-					onPress={handleAddProject}>
+					onPress={handleAddProject}
+				>
 					<Text style={styles.buttonText}>Créer un projet</Text>
 				</TouchableOpacity>
 			)}
 		</View>
 	), [handleAddProject, isTeamOwner]);
+
+	const renderContent = useMemo(() => {
+		if (activeTab === "members") {
+			return (
+				<FlatList
+					data={currentMembers}
+					renderItem={renderMemberItem}
+					keyExtractor={(item) => item.id.toString()}
+					contentContainerStyle={styles.listContainer}
+					ListEmptyComponent={EmptyMembers}
+					refreshing={loading}
+					onRefresh={() => dispatch(loadTeamMembers(team.id))}
+				/>
+			);
+		} else {
+			return (
+				<FlatList
+					data={currentProjects}
+					renderItem={renderProjectItem}
+					keyExtractor={(item) => item.id.toString()}
+					contentContainerStyle={styles.listContainer}
+					ListEmptyComponent={EmptyProjects}
+					refreshing={projectsLoading}
+					onRefresh={() => dispatch(loadTeamProjects(team.id))}
+				/>
+			);
+		}
+	}, [activeTab, currentMembers, currentProjects, isTeamOwner, handleRemoveMember, handleProjectPress]);
 
 	if (loading || projectsLoading) {
 		return (
@@ -387,23 +399,7 @@ const TeamDetailsScreen = () => {
 		<View style={styles.container}>
 			{renderHeader}
 			{renderTabs}
-			<FlatList
-				data={activeTab === "members" ? currentMembers : currentProjects}
-				renderItem={activeTab === "members" ? renderMemberItem : renderProject}
-				keyExtractor={(item) => item.id.toString()}
-				contentContainerStyle={styles.listContainer}
-				ListEmptyComponent={
-					activeTab === "members" ? EmptyMembers : EmptyProjects
-				}
-				refreshing={activeTab === "members" ? loading : projectsLoading}
-				onRefresh={() => {
-					if (activeTab === "members") {
-						dispatch(loadTeamMembers(team.id));
-					} else {
-						dispatch(loadTeamProjects(team.id));
-					}
-				}}
-			/>
+			{renderContent}
 		</View>
 	);
 };
@@ -454,27 +450,27 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		backgroundColor: "#fff",
 		paddingHorizontal: 20,
-		paddingTop: 10,
+		paddingVertical: 10,
 		borderBottomWidth: 1,
 		borderBottomColor: "#eee",
 	},
 	tab: {
 		flex: 1,
-		paddingVertical: 15,
+		paddingVertical: 10,
 		alignItems: "center",
+		marginHorizontal: 5,
+		borderRadius: 8,
 	},
 	activeTab: {
-		borderBottomWidth: 2,
-		borderBottomColor: colors.primary,
+		backgroundColor: colors.primary,
 	},
 	tabText: {
 		fontSize: 16,
-		color: "#666",
-		fontWeight: "500",
+		fontWeight: "600",
+		color: colors.textGray,
 	},
 	activeTabText: {
-		color: colors.primary,
-		fontWeight: "600",
+		color: "#fff",
 	},
 	listContainer: {
 		padding: 15,

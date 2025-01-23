@@ -24,14 +24,14 @@ export const API_ENDPOINTS = {
 		TEAM: (teamId) => `/tasks/team/${teamId}`,
 	},
 	PROJECTS: {
-		BASE: "/projects",
-		CREATE: "/projects/create",
-		FIND: "/projects/find",
-		UPDATE: "/projects/update",
-		DELETE: (id) => `/projects/${id}`,
-		TEAM: (teamId) => `/projects/team/${teamId}`,
-		MEMBERS: (projectId) => `/projects/${projectId}/members`,
-		MEMBER: (projectId, userId) => `/projects/${projectId}/members/${userId}`,
+		BASE: "/projets",
+		CREATE: "/projets",
+		FIND: "/projets/find",
+		UPDATE: "/projets/update",
+		DELETE: (id) => `/projets/${id}`,
+		TEAM: (teamId) => `/projets/team/${teamId}`,
+		MEMBERS: (projectId) => `/projets/${projectId}/members`,
+		MEMBER: (projectId, userId) => `/projets/${projectId}/members/${userId}`,
 	},
 };
 
