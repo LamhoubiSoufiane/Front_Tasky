@@ -1,9 +1,12 @@
-import { TASK_TYPES } from '../actions/taskActions';
+import { TASK_TYPES, SET_USER_LOCATION, SET_LOADING, SET_ERROR, SET_TASKS } from '../actions/taskActions';
+import { mockTasks } from '../../data/mockTasks';
 
 const initialState = {
     loading: false,
     error: null,
-    tasks: {},  // Organisé par projectId
+    tasks: mockTasks,  // Organisé par projectId
+    userLocation: null,
+    
 };
 
 const taskReducer = (state = initialState, action) => {
@@ -12,72 +15,45 @@ const taskReducer = (state = initialState, action) => {
             return {
                 ...state,
                 loading: action.payload,
-                error: null,
             };
 
         case TASK_TYPES.SET_ERROR:
             return {
                 ...state,
                 error: action.payload,
-                loading: false,
             };
 
-        case TASK_TYPES.SET_TASKS:
+        case SET_TASKS:
             return {
                 ...state,
-                tasks: {
-                    ...state.tasks,
-                    [action.payload.projectId]: action.payload.tasks,
-                },
-                loading: false,
-                error: null,
+                tasks: Array.isArray(action.payload) ? action.payload : [],
             };
 
-        case TASK_TYPES.ADD_TASK: {
-            const projectId = action.payload.projectId;
+        case SET_USER_LOCATION:
             return {
                 ...state,
-                tasks: {
-                    ...state.tasks,
-                    [projectId]: [
-                        ...(state.tasks[projectId] || []),
-                        action.payload,
-                    ],
-                },
-                loading: false,
-                error: null,
+                userLocation: action.payload,
             };
-        }
 
-        case TASK_TYPES.UPDATE_TASK: {
-            const projectId = action.payload.projectId;
+        case TASK_TYPES.ADD_TASK:
             return {
                 ...state,
-                tasks: {
-                    ...state.tasks,
-                    [projectId]: state.tasks[projectId].map(task =>
-                        task.id === action.payload.id ? action.payload : task
-                    ),
-                },
-                loading: false,
-                error: null,
+                tasks: [...state.tasks, action.payload],
             };
-        }
 
-        case TASK_TYPES.DELETE_TASK: {
-            const newTasks = { ...state.tasks };
-            Object.keys(newTasks).forEach(projectId => {
-                newTasks[projectId] = newTasks[projectId].filter(
-                    task => task.id !== action.payload
-                );
-            });
+        case TASK_TYPES.UPDATE_TASK:
             return {
                 ...state,
-                tasks: newTasks,
-                loading: false,
-                error: null,
+                tasks: state.tasks.map((task) =>
+                    task.id === action.payload.id ? action.payload : task
+                ),
             };
-        }
+
+        case TASK_TYPES.DELETE_TASK:
+            return {
+                ...state,
+                tasks: state.tasks.filter((task) => task.id !== action.payload),
+            };
 
         default:
             return state;
