@@ -47,11 +47,10 @@ const TaskCard = React.memo(({ task, onPress }) => {
 	);
 });
 
-const CreateTaskModal = React.memo(({ visible, onClose, onSubmit }) => {
+const CreateTaskModal = React.memo(({ visible, onClose, onSubmit, members = [] }) => {
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [selectedMember, setSelectedMember] = useState(null);
-	const { members } = useSelector(state => state.project);
 
 	const handleSubmit = () => {
 		if (!title.trim() || !description.trim()) {
@@ -156,6 +155,13 @@ const ProjectDetailsScreen = () => {
 	const user = useSelector((state) => state.auth.user);
 	const { projectMembers, loading } = useSelector((state) => state.project);
 	const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+
+	// Charger les membres du projet au chargement de l'écran
+	useEffect(() => {
+		if (project?.id) {
+			dispatch(loadProjectMembers(project.id));
+		}
+	}, [project?.id, dispatch]);
 
 	const currentMembers = useMemo(() => {
 		if (!project?.id) return [];
@@ -425,7 +431,7 @@ const ProjectDetailsScreen = () => {
 			<View style={styles.tasksContainer}>
 				<Text style={styles.tasksTitle}>Tâches du projet</Text>
 				<FlatList
-					data={projectMembers[project.id] || []}
+					data={project.tasks || []}
 					renderItem={renderTask}
 					keyExtractor={(item) => item.id.toString()}
 					contentContainerStyle={styles.tasksList}
@@ -438,6 +444,7 @@ const ProjectDetailsScreen = () => {
 				visible={isCreateModalVisible}
 				onClose={() => setCreateModalVisible(false)}
 				onSubmit={handleCreateTask}
+				members={currentMembers}
 			/>
 		</View>
 	);

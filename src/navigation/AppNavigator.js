@@ -14,6 +14,7 @@ const SettingsScreen = lazy(() => import("../Screens/SettingsScreen"));
 const TeamDetailsScreen = lazy(() => import("../Screens/TeamDetailsScreen"));
 const CreateTeamScreen = lazy(() => import("../Screens/CreateTeamScreen"));
 const AddMemberScreen = lazy(() => import("../Screens/AddMemberScreen"));
+const ProjectDetailsScreen = lazy(() => import("../Screens/ProjectDetailsScreen"));
 
 const LoadingComponent = () => (
 	<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -60,6 +61,10 @@ const TeamStackNavigator = () => {
 			<TeamStack.Screen
 				name="CreateProject"
 				component={withSuspense(CreateProjectScreen)}
+			/>
+			<TeamStack.Screen
+				name="ProjectDetails"
+				component={withSuspense(ProjectDetailsScreen)}
 			/>
 		</TeamStack.Navigator>
 	);
