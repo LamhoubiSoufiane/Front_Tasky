@@ -14,7 +14,13 @@ const SettingsScreen = lazy(() => import("../Screens/SettingsScreen"));
 const TeamDetailsScreen = lazy(() => import("../Screens/TeamDetailsScreen"));
 const CreateTeamScreen = lazy(() => import("../Screens/CreateTeamScreen"));
 const AddMemberScreen = lazy(() => import("../Screens/AddMemberScreen"));
-const ProjectDetailsScreen = lazy(() => import("../Screens/ProjectDetailsScreen"));
+const ProjectDetailsScreen = lazy(() =>
+	import("../Screens/ProjectDetailsScreen")
+);
+const ProjectMembersScreen = lazy(() =>
+	import("../Screens/ProjectMembersScreen")
+);
+const TaskDetailsScreen = lazy(() => import("../Screens/TaskDetailsScreen"));
 
 const LoadingComponent = () => (
 	<View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -38,14 +44,11 @@ const TeamStack = createStackNavigator();
 
 const TeamStackNavigator = () => {
 	return (
-		<TeamStack.Navigator 
-			screenOptions={{ 
-				headerShown: false
+		<TeamStack.Navigator
+			screenOptions={{
+				headerShown: false,
 			}}>
-			<TeamStack.Screen
-				name="TeamsList"
-				component={withSuspense(TeamScreen)}
-			/>
+			<TeamStack.Screen name="TeamsList" component={withSuspense(TeamScreen)} />
 			<TeamStack.Screen
 				name="TeamDetails"
 				component={withSuspense(TeamDetailsScreen)}
@@ -65,6 +68,14 @@ const TeamStackNavigator = () => {
 			<TeamStack.Screen
 				name="ProjectDetails"
 				component={withSuspense(ProjectDetailsScreen)}
+			/>
+			<TeamStack.Screen
+				name="ProjectMembers"
+				component={withSuspense(ProjectMembersScreen)}
+			/>
+			<TeamStack.Screen
+				name="TaskDetails"
+				component={withSuspense(TaskDetailsScreen)}
 			/>
 		</TeamStack.Navigator>
 	);
@@ -102,26 +113,11 @@ const AppNavigator = () => {
 					shadowRadius: 2,
 				},
 			})}>
-			<Tab.Screen
-				name="Map"
-				component={withSuspense(MapScreen)}
-			/>
-			<Tab.Screen
-				name="Tasks"
-				component={withSuspense(TaskScreen)}
-			/>
-			<Tab.Screen
-				name="Messages"
-				component={withSuspense(MessageScreen)}
-			/>
-			<Tab.Screen
-				name="Teams"
-				component={TeamStackNavigator}
-			/>
-			<Tab.Screen
-				name="Settings"
-				component={withSuspense(SettingsScreen)}
-			/>
+			<Tab.Screen name="Map" component={withSuspense(MapScreen)} />
+			<Tab.Screen name="Tasks" component={withSuspense(TaskScreen)} />
+			<Tab.Screen name="Messages" component={withSuspense(MessageScreen)} />
+			<Tab.Screen name="Teams" component={TeamStackNavigator} />
+			<Tab.Screen name="Settings" component={withSuspense(SettingsScreen)} />
 		</Tab.Navigator>
 	);
 };

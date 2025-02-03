@@ -1,0 +1,866 @@
+{
+	"info": {
+		"_postman_id": "b5c34f97-32c3-433a-b73d-e8a285af79f5",
+		"name": "Tasky API",
+		"description": "API collection for Tasky application - Task Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33182524",
+		"_collection_link": "https://fd3333-7896.postman.co/workspace/351e70a9-627c-45ef-b74a-5c435b07b092/collection/33182524-b5c34f97-32c3-433a-b73d-e8a285af79f5?action=share&source=collection_link&creator=33182524"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\",\n    \"nom\": \"Doe\",\n    \"prenom\": \"John\",\n    \"username\": \"johndoe\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/auth/register",
+						"description": "Register a new user with email, password, nom (last name), prenom (first name), and username"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set('accessToken', jsonData.access_token);",
+									"pm.environment.set('refreshToken', jsonData.refresh_token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/auth/login",
+						"description": "Login with email and password to get access token"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Teams",
+			"item": [
+				{
+					"name": "Create Team",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nom\": \"My Team\",\n    \"description\": \"A team description\",\n    \"memberIds\": [1, 2, 3]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/teams",
+						"description": "Create a new team"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Teams",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/teams",
+						"description": "Get all teams"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/teams/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the team to retrieve"
+								}
+							]
+						},
+						"description": "Get a team by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Team",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nom\": \"Updated Team Name\",\n    \"description\": \"Updated team description\",\n    \"memberIds\": [1, 2, 3, 4]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/teams/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the team to update"
+								}
+							]
+						},
+						"description": "Update a team's information"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Team",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/teams/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the team to delete"
+								}
+							]
+						},
+						"description": "Delete a team"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Create Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nom\": \"New Project\",\n    \"description\": \"Project description\",\n    \"startDate\": \"2025-01-23\",\n    \"endDate\": \"2025-02-23\",\n    \"status\": \"planifié\",\n    \"teamId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/projets",
+						"description": "Create a new project"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/projets",
+						"description": "Get all projects"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/projets/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projets",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the project to retrieve"
+								}
+							]
+						},
+						"description": "Get a project by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Projects by Team",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/projets/team/:teamId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projets",
+								"team",
+								":teamId"
+							],
+							"variable": [
+								{
+									"key": "teamId",
+									"value": "",
+									"description": "ID of the team"
+								}
+							]
+						},
+						"description": "Get all projects for a specific team"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Projects by Member",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/projets/member/:memberId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projets",
+								"member",
+								":memberId"
+							],
+							"variable": [
+								{
+									"key": "memberId",
+									"value": "",
+									"description": "ID of the member"
+								}
+							]
+						},
+						"description": "Get all projects for a specific team member"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nom\": \"Updated Project\",\n    \"description\": \"Updated project description\",\n    \"startDate\": \"2025-01-23\",\n    \"endDate\": \"2025-03-23\",\n    \"status\": \"en cours\",\n    \"teamId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/projets/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projets",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the project to update"
+								}
+							]
+						},
+						"description": "Update a project's information"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Project",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/projets/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projets",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the project to delete"
+								}
+							]
+						},
+						"description": "Delete a project"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tasks",
+			"item": [
+				{
+					"name": "Create Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nom\": \"New Task\",\n    \"description\": \"Task description\",\n    \"startDate\": \"2025-01-23\",\n    \"endDate\": \"2025-02-23\",\n    \"priority\": \"normale\",\n    \"statut\": \"a faire\",\n    \"projetId\": 1,\n    \"location\": {\n        \"latitude\": 33.5731104,\n        \"longitude\": -7.5898434,\n        \"address\": \"Casablanca, Morocco\"\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/tasks",
+						"description": "Create a new task"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Task by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/tasks/:taskId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tasks",
+								":taskId"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": "",
+									"description": "ID of the task to retrieve"
+								}
+							]
+						},
+						"description": "Get a task by its ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tasks by Project",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/tasks/project/:projectId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tasks",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "",
+									"description": "ID of the project"
+								}
+							]
+						},
+						"description": "Get all tasks for a specific project. Only accessible to team members."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/tasks/my-tasks",
+						"description": "Get all tasks assigned to the authenticated user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Tasks - To Do",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/tasks/my-tasks/a-faire",
+						"description": "Get all my tasks with status 'a faire' (to do)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Tasks - In Progress",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/tasks/my-tasks/en-cours",
+						"description": "Get all my tasks with status 'en cours' (in progress)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Tasks - Completed",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/tasks/my-tasks/terminees",
+						"description": "Get all my tasks with status 'terminee' (completed)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Tasks by Project",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/tasks/my-tasks/project/:projectId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tasks",
+								"my-tasks",
+								"project",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "",
+									"description": "ID of the project to get tasks from"
+								}
+							]
+						},
+						"description": "Get all my tasks for a specific project"
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Task to Member",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/tasks/:taskId/assign/:memberId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"tasks",
+								":taskId",
+								"assign",
+								":memberId"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": "",
+									"description": "ID of the task to assign"
+								},
+								{
+									"key": "memberId",
+									"value": "",
+									"description": "ID of the member to assign the task to"
+								}
+							]
+						},
+						"description": "Assign a task to a team member"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Aides",
+			"item": [
+				{
+					"name": "Create Help Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Need help with this task\",\n    \"taskId\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/aides",
+						"description": "Create a new help request for a task"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Help Request by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/aides/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"aides",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the help request to retrieve"
+								}
+							]
+						},
+						"description": "Get a help request by its ID. Only accessible to team members."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pending Help Requests by Project",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/aides/en-attente/:projectId",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"aides",
+								"en-attente",
+								":projectId"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "",
+									"description": "ID of the project"
+								}
+							]
+						},
+						"description": "Get all pending help requests for a specific project"
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Help Request",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/aides/:id/accepter",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"aides",
+								":id",
+								"accepter"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the help request to accept"
+								}
+							]
+						},
+						"description": "Accept a help request"
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Help Request",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/aides/:id/terminer",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"aides",
+								":id",
+								"terminer"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "ID of the help request to complete"
+								}
+							]
+						},
+						"description": "Mark a help request as completed"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/search?query={{searchQuery}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"search"
+							],
+							"query": [
+								{
+									"key": "query",
+									"value": "{{searchQuery}}",
+									"description": "Search query for finding users"
+								}
+							]
+						},
+						"description": "Search for users by query"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
