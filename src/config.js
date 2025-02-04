@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = "http://192.168.0.118:3000";
+export const API_BASE_URL = "http://192.168.11.117:3000";
 export const API_ENDPOINTS = {
 	AUTH: {
 		LOGIN: "/auth/login",
