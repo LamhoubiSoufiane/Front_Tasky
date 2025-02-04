@@ -1,373 +1,498 @@
 import React, { useEffect, useState } from "react";
 import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	ScrollView,
-	ActivityIndicator,
-	Modal,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+    Modal,
+    Alert,
+    TextInput,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import Icon from "react-native-vector-icons/MaterialIcons";
 import { colors } from "../assets/colors";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { loadProjectMembers } from "../Redux/actions/projectActions";
 import {
-	assignTaskToMember,
-	loadProjectTasks,
+    assignTaskToMember,
+    loadProjectTasks,
+    updateTask,
+    deleteTask,
+    updateTaskStatus,
 } from "../Redux/actions/taskActions";
 import Toast from "react-native-toast-message";
 
 const TaskDetailsScreen = () => {
-	const navigation = useNavigation();
-	const route = useRoute();
-	const dispatch = useDispatch();
-	const { taskId } = route.params;
-	const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
+    const navigation = useNavigation();
+    const route = useRoute();
+    const dispatch = useDispatch();
+    const { taskId, isEditMode: initialEditMode } = route.params;
+    const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(initialEditMode || false);
+    const [editedTitle, setEditedTitle] = useState("");
+    const [editedDescription, setEditedDescription] = useState("");
 
-	const task = useSelector((state) =>
-		state.task.projectTasks.find((t) => t.id === taskId)
-	);
+    const task = useSelector((state) =>
+        state.task.projectTasks.find((t) => t.id === taskId)
+    );
 
-	const projectMembers = useSelector((state) => {
-		console.log("in Task details screen Task:", task);
-		return task?.projetId
-			? state.project.projectMembers[task.projetId] || []
-			: [];
-	});
+    useEffect(() => {
+        if (task) {
+            setEditedTitle(task.nom || "");
+            setEditedDescription(task.description || "");
+        }
+    }, [task]);
 
-	// Trouver le membre assigné à partir de son ID
-	const assignedMember = projectMembers.find(
-		(member) => member.id === task?.memberId
-	);
-	console.log("Membre assigné:", assignedMember);
+    const projectMembers = useSelector((state) => {
+        console.log("in Task details screen Task:", task);
+        return task?.projetId
+            ? state.project.projectMembers[task.projetId] || []
+            : [];
+    });
 
-	useEffect(() => {
-		const loadMembers = async () => {
-			if (task?.projetId) {
-				console.log("Chargement des membres pour le projet:", task.projetId);
-				try {
-					const result = await dispatch(loadProjectMembers(task.projetId));
-					console.log("Résultat du chargement des membres:", result);
-					if (!result.success) {
-						Toast.show({
-							type: "error",
-							text1: "Erreur",
-							text2: "Impossible de charger les membres du projet",
-							position: "top",
-							visibilityTime: 3000,
-						});
-					}
-				} catch (error) {
-					console.error("Erreur lors du chargement des membres:", error);
-					Toast.show({
-						type: "error",
-						text1: "Erreur",
-						text2: "Erreur lors du chargement des membres",
-						position: "top",
-						visibilityTime: 3000,
-					});
-				}
-			} else {
-				console.log("Pas d'ID de projet trouvé dans la tâche");
-			}
-		};
-		loadMembers();
-	}, [dispatch, task?.projetId]);
+    // Trouver le membre assigné à partir de son ID
+    const assignedMember = projectMembers.find(
+        (member) => member.id === task?.memberId
+    );
+    console.log("Membre assigné:", assignedMember);
 
-	const reloadTaskData = async () => {
-		if (task?.projetId) {
-			await dispatch(loadProjectTasks(task.projetId));
-		}
-	};
+    useEffect(() => {
+        const loadMembers = async () => {
+            if (task?.projetId) {
+                console.log("Chargement des membres pour le projet:", task.projetId);
+                try {
+                    const result = await dispatch(loadProjectMembers(task.projetId));
+                    console.log("Résultat du chargement des membres:", result);
+                    if (!result.success) {
+                        Toast.show({
+                            type: "error",
+                            text1: "Erreur",
+                            text2: "Impossible de charger les membres du projet",
+                            position: "top",
+                            visibilityTime: 3000,
+                        });
+                    }
+                } catch (error) {
+                    console.error("Erreur lors du chargement des membres:", error);
+                    Toast.show({
+                        type: "error",
+                        text1: "Erreur",
+                        text2: "Erreur lors du chargement des membres",
+                        position: "top",
+                        visibilityTime: 3000,
+                    });
+                }
+            } else {
+                console.log("Pas d'ID de projet trouvé dans la tâche");
+            }
+        };
+        loadMembers();
+    }, [dispatch, task?.projetId]);
 
-	if (!task) {
-		return (
-			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color={colors.primary} />
-			</View>
-		);
-	}
+    const reloadTaskData = async () => {
+        if (task?.projetId) {
+            await dispatch(loadProjectTasks(task.projetId));
+        }
+    };
 
-	const handleBackPress = () => {
-		navigation.goBack();
-	};
+    const handleDelete = () => {
+        Alert.alert(
+            "Supprimer la tâche",
+            "Êtes-vous sûr de vouloir supprimer cette tâche ?",
+            [
+                { text: "Annuler", style: "cancel" },
+                {
+                    text: "Supprimer",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await dispatch(deleteTask(taskId));
+                            Toast.show({
+                                type: "success",
+                                text1: "Succès",
+                                text2: "Tâche supprimée avec succès",
+                            });
+                            navigation.goBack();
+                        } catch (error) {
+                            Toast.show({
+                                type: "error",
+                                text1: "Erreur",
+                                text2: "Impossible de supprimer la tâche",
+                            });
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
-	const handleAssignTask = async (memberId) => {
-		try {
-			const result = await dispatch(assignTaskToMember(taskId, memberId));
-			if (result.success) {
-				Toast.show({
-					type: "success",
-					text1: "Succès",
-					text2: "Tâche assignée avec succès",
-					position: "top",
-					visibilityTime: 3000,
-				});
-				setIsAssignModalVisible(false);
-				await reloadTaskData();
-			} else {
-				Toast.show({
-					type: "error",
-					text1: "Erreur",
-					text2: result.error || "Impossible d'assigner la tâche",
-					position: "top",
-					visibilityTime: 3000,
-				});
-			}
-		} catch (error) {
-			console.error("Erreur lors de l'assignation:", error);
-			Toast.show({
-				type: "error",
-				text1: "Erreur",
-				text2: "Impossible d'assigner la tâche",
-				position: "top",
-				visibilityTime: 3000,
-			});
-		}
-	};
+    const handleEdit = async () => {
+        if (isEditMode) {
+            if (!editedTitle.trim() || !editedDescription.trim()) {
+                Toast.show({
+                    type: "error",
+                    text1: "Erreur",
+                    text2: "Le titre et la description sont requis",
+                });
+                return;
+            }
+            try {
+                await dispatch(updateTask(taskId, {
+                    nom: editedTitle,
+                    description: editedDescription,
+                }));
+                Toast.show({
+                    type: "success",
+                    text1: "Succès",
+                    text2: "Tâche mise à jour avec succès",
+                });
+                setIsEditMode(false);
+            } catch (error) {
+                Toast.show({
+                    type: "error",
+                    text1: "Erreur",
+                    text2: "Impossible de mettre à jour la tâche",
+                });
+            }
+        } else {
+            setIsEditMode(true);
+        }
+    };
 
-	const getStatusColor = (status) => {
-		switch (status?.toLowerCase()) {
-			case "terminé":
-				return "#4CAF50";
-			case "en_cours":
-				return "#2196F3";
-			case "en_attente":
-			default:
-				return "#FFC107";
-		}
-	};
+    const handleStatusChange = async () => {
+        const statusOptions = ["a_faire", "en_cours", "termine"];
+        const currentIndex = statusOptions.indexOf(task.statut);
+        const nextStatus = statusOptions[(currentIndex + 1) % statusOptions.length];
+        try {
+            await dispatch(updateTaskStatus(taskId, nextStatus));
+            Toast.show({
+                type: "success",
+                text1: "Succès",
+                text2: "Statut mis à jour avec succès",
+            });
+        } catch (error) {
+            Toast.show({
+                type: "error",
+                text1: "Erreur",
+                text2: "Impossible de mettre à jour le statut",
+            });
+        }
+    };
 
-	return (
-		<View style={styles.container}>
-			<View style={styles.header}>
-				<TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-					<Icon name="arrow-left" size={24} color="#fff" />
-				</TouchableOpacity>
-				<Text style={styles.title}>Détails de la tâche</Text>
-				<View style={styles.placeholder} />
-			</View>
+    const handleAssignTask = async (memberId) => {
+        try {
+            const result = await dispatch(assignTaskToMember(taskId, memberId));
+            if (result.success) {
+                Toast.show({
+                    type: "success",
+                    text1: "Succès",
+                    text2: "Tâche assignée avec succès",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+                setIsAssignModalVisible(false);
+                await reloadTaskData();
+            } else {
+                Toast.show({
+                    type: "error",
+                    text1: "Erreur",
+                    text2: result.error || "Impossible d'assigner la tâche",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+            }
+        } catch (error) {
+            console.error("Erreur lors de l'assignation:", error);
+            Toast.show({
+                type: "error",
+                text1: "Erreur",
+                text2: "Impossible d'assigner la tâche",
+                position: "top",
+                visibilityTime: 3000,
+            });
+        }
+    };
 
-			<ScrollView style={styles.content}>
-				<View style={styles.section}>
-					<Text style={styles.taskTitle}>{task.nom}</Text>
-					<View
-						style={[
-							styles.statusBadge,
-							{ backgroundColor: getStatusColor(task.statut) },
-						]}>
-						<Text style={styles.statusText}>{task.statut || "En attente"}</Text>
-					</View>
-				</View>
+    const getStatusColor = (status) => {
+        switch (status?.toLowerCase()) {
+            case "termine":
+                return "#4CAF50";
+            case "en_cours":
+                return "#2196F3";
+            case "a_faire":
+            default:
+                return "#FFC107";
+        }
+    };
 
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Description</Text>
-					<Text style={styles.description}>
-						{task.description || "Aucune description"}
-					</Text>
-				</View>
+    if (!task) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+        );
+    }
 
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Date d'échéance</Text>
-					<Text style={styles.dateText}>
-						{new Date(task.endDate).toLocaleDateString()}
-					</Text>
-				</View>
+    const handleBackPress = () => {
+        navigation.goBack();
+    };
 
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Assigné à</Text>
-					<View style={styles.assigneeContainer}>
-						<Text style={styles.assigneeText}>
-							{assignedMember
-								? assignedMember.username || assignedMember.name
-								: "Non assigné"}
-						</Text>
-						<TouchableOpacity
-							style={styles.assignButton}
-							onPress={() => setIsAssignModalVisible(true)}>
-							<Icon name="account-plus" size={24} color={colors.primary} />
-						</TouchableOpacity>
-					</View>
-				</View>
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Icon name="arrow-left" size={24} color="#fff" />
+                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={handleStatusChange} style={styles.headerButton}>
+                        <Icon name="rotate-right" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleEdit} style={styles.headerButton}>
+                        <Icon name={isEditMode ? "check" : "edit"} size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleDelete} style={styles.headerButton}>
+                        <Icon name="delete" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+            </View>
 
-				<Modal
-					visible={isAssignModalVisible}
-					animationType="slide"
-					transparent={true}
-					onRequestClose={() => setIsAssignModalVisible(false)}>
-					<View style={styles.modalContainer}>
-						<View style={styles.modalContent}>
-							<Text style={styles.modalTitle}>Assigner la tâche à</Text>
-							<ScrollView>
-								{projectMembers.length > 0 ? (
-									projectMembers.map((member) => (
-										<TouchableOpacity
-											key={member.id}
-											style={styles.memberItem}
-											onPress={() => handleAssignTask(member.id)}>
-											<Text style={styles.memberName}>
-												{member.name || member.username}
-											</Text>
-										</TouchableOpacity>
-									))
-								) : (
-									<Text style={styles.noMembersText}>
-										Aucun membre disponible
-									</Text>
-								)}
-							</ScrollView>
-							<TouchableOpacity
-								style={styles.closeButton}
-								onPress={() => setIsAssignModalVisible(false)}>
-								<Text style={styles.closeButtonText}>Fermer</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				</Modal>
-			</ScrollView>
-		</View>
-	);
+            <ScrollView style={styles.content}>
+                {isEditMode ? (
+                    <View style={styles.editContainer}>
+                        <TextInput
+                            style={styles.editInput}
+                            value={editedTitle}
+                            onChangeText={setEditedTitle}
+                            placeholder="Titre de la tâche"
+                        />
+                        <TextInput
+                            style={[styles.editInput, styles.editDescription]}
+                            value={editedDescription}
+                            onChangeText={setEditedDescription}
+                            placeholder="Description de la tâche"
+                            multiline
+                        />
+                    </View>
+                ) : (
+                    <>
+                        <Text style={styles.taskTitle}>{task?.nom}</Text>
+                        <View
+                            style={[
+                                styles.statusBadge,
+                                { backgroundColor: getStatusColor(task?.statut) },
+                            ]}>
+                            <Text style={styles.statusText}>{task?.statut || "En attente"}</Text>
+                        </View>
+                        <Text style={styles.description}>{task?.description}</Text>
+                    </>
+                )}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Date d'échéance</Text>
+                    <Text style={styles.dateText}>
+                        {new Date(task.endDate).toLocaleDateString()}
+                    </Text>
+                </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Assigné à</Text>
+                    <View style={styles.assigneeContainer}>
+                        <Text style={styles.assigneeText}>
+                            {assignedMember
+                                ? assignedMember.username || assignedMember.name
+                                : "Non assigné"}
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.assignButton}
+                            onPress={() => setIsAssignModalVisible(true)}>
+                            <Icon name="person-add" size={24} color={colors.primary} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <Modal
+                    visible={isAssignModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setIsAssignModalVisible(false)}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Assigner la tâche à</Text>
+                            <ScrollView>
+                                {projectMembers.length > 0 ? (
+                                    projectMembers.map((member) => (
+                                        <TouchableOpacity
+                                            key={member.id}
+                                            style={styles.memberItem}
+                                            onPress={() => handleAssignTask(member.id)}>
+                                            <Text style={styles.memberName}>
+                                                {member.name || member.username}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))
+                                ) : (
+                                    <Text style={styles.noMembersText}>
+                                        Aucun membre disponible
+                                    </Text>
+                                )}
+                            </ScrollView>
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => setIsAssignModalVisible(false)}>
+                                <Text style={styles.closeButtonText}>Fermer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            </ScrollView>
+        </View>
+    );
 };
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#fff",
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	header: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		padding: 20,
-		paddingTop: 60,
-		backgroundColor: colors.primary,
-	},
-	backButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.3)",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "bold",
-		color: "#fff",
-		flex: 1,
-		textAlign: "center",
-		marginHorizontal: 10,
-	},
-	placeholder: {
-		width: 40,
-	},
-	content: {
-		flex: 1,
-		padding: 20,
-	},
-	section: {
-		marginBottom: 24,
-	},
-	taskTitle: {
-		fontSize: 24,
-		fontWeight: "bold",
-		color: "#333",
-		marginBottom: 8,
-	},
-	statusBadge: {
-		alignSelf: "flex-start",
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 16,
-		marginTop: 8,
-	},
-	statusText: {
-		color: "#fff",
-		fontSize: 14,
-		fontWeight: "600",
-	},
-	sectionTitle: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 8,
-	},
-	description: {
-		fontSize: 16,
-		color: "#666",
-		lineHeight: 24,
-	},
-	dateText: {
-		fontSize: 16,
-		color: "#666",
-	},
-	assigneeText: {
-		fontSize: 16,
-		color: "#666",
-	},
-	assigneeContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	assignButton: {
-		padding: 8,
-		borderRadius: 20,
-		backgroundColor: "#f0f0f0",
-	},
-	modalContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-	},
-	modalContent: {
-		width: "80%",
-		maxHeight: "70%",
-		backgroundColor: "#fff",
-		borderRadius: 10,
-		padding: 20,
-	},
-	modalTitle: {
-		fontSize: 20,
-		fontWeight: "bold",
-		marginBottom: 20,
-		textAlign: "center",
-	},
-	memberItem: {
-		padding: 15,
-		borderBottomWidth: 1,
-		borderBottomColor: "#eee",
-	},
-	memberName: {
-		fontSize: 16,
-		color: "#333",
-	},
-	closeButton: {
-		marginTop: 20,
-		padding: 15,
-		backgroundColor: colors.primary,
-		borderRadius: 8,
-		alignItems: "center",
-	},
-	closeButtonText: {
-		color: "#fff",
-		fontSize: 16,
-		fontWeight: "bold",
-	},
-	noMembersText: {
-		textAlign: "center",
-		color: "#666",
-		fontSize: 16,
-		marginVertical: 20,
-	},
+    container: {
+        flex: 1,
+        backgroundColor: "#fff",
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 20,
+        paddingTop: 60,
+        backgroundColor: colors.primary,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 15,
+    },
+    headerButton: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    content: {
+        flex: 1,
+        padding: 20,
+    },
+    section: {
+        marginBottom: 24,
+    },
+    taskTitle: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 8,
+    },
+    statusBadge: {
+        alignSelf: "flex-start",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginTop: 8,
+    },
+    statusText: {
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#333",
+        marginBottom: 8,
+    },
+    description: {
+        fontSize: 16,
+        color: "#666",
+        lineHeight: 24,
+    },
+    dateText: {
+        fontSize: 16,
+        color: "#666",
+    },
+    assigneeText: {
+        fontSize: 16,
+        color: "#666",
+    },
+    assigneeContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    assignButton: {
+        padding: 8,
+        borderRadius: 20,
+        backgroundColor: "#f0f0f0",
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        width: "80%",
+        maxHeight: "70%",
+        backgroundColor: "#fff",
+        borderRadius: 10,
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 20,
+        textAlign: "center",
+    },
+    memberItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
+    },
+    memberName: {
+        fontSize: 16,
+        color: "#333",
+    },
+    closeButton: {
+        marginTop: 20,
+        padding: 15,
+        backgroundColor: colors.primary,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    closeButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    noMembersText: {
+        textAlign: "center",
+        color: "#666",
+        fontSize: 16,
+        marginVertical: 20,
+    },
+    editContainer: {
+        padding: 15,
+    },
+    editInput: {
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 15,
+        fontSize: 16,
+        backgroundColor: '#fff',
+    },
+    editDescription: {
+        height: 100,
+        textAlignVertical: 'top',
+    },
 });
 
 export default TaskDetailsScreen;
