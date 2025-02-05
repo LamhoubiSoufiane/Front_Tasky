@@ -1,5 +1,9 @@
 // API Configuration
+<<<<<<< HEAD
 export const API_BASE_URL = "http://192.168.0.119:3000";
+=======
+export const API_BASE_URL = "http://192.168.11.105:3000";
+>>>>>>> 84d2483 (creating task with location and modifying task form)
 export const API_ENDPOINTS = {
 	AUTH: {
 		LOGIN: "/auth/login",
