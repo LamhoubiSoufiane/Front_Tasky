@@ -36,6 +36,11 @@ const CreateTaskModal = React.memo(
 		const [title, setTitle] = useState("");
 		const [description, setDescription] = useState("");
 		const [selectedMember, setSelectedMember] = useState(null);
+		
+
+		
+
+
 
 		const handleSubmit = () => {
 			if (!title.trim() || !description.trim()) {
@@ -46,14 +51,19 @@ const CreateTaskModal = React.memo(
 				});
 				return;
 			}
-			onSubmit({
-				titre: title,
-				description,
-				assignedToId: selectedMember?.id,
-			});
+			
+			
+			onSubmit(
+				{
+					titre: title,
+					description,
+					assignedToId: selectedMember?.id,
+				}
+				);
 			setTitle("");
 			setDescription("");
 			setSelectedMember(null);
+			
 		};
 
 		return (
@@ -93,6 +103,9 @@ const CreateTaskModal = React.memo(
 									numberOfLines={4}
 								/>
 							</View>
+							
+							
+							
 
 							<View style={styles.inputContainer}>
 								<Text style={styles.label}>Assigner à</Text>
@@ -127,6 +140,7 @@ const CreateTaskModal = React.memo(
 						</ScrollView>
 					</View>
 				</View>
+				
 			</Modal>
 		);
 	}
@@ -906,6 +920,8 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 		fontWeight: "600",
 	},
+
+	
 });
 
 export default ProjectDetailsScreen;
