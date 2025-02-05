@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { NavigationContainer } from "@react-navigation/native";
 import CreateProjectScreen from "../Screens/CreateProjectScreen";
+import EditScreen from "../Screens/EditScreen";
 
 const MapScreen = lazy(() => import("../Screens/MapScreen"));
 const TaskScreen = lazy(() => import("../Screens/TaskScreen"));
@@ -76,6 +77,10 @@ const TeamStackNavigator = () => {
 			<TeamStack.Screen
 				name="TaskDetails"
 				component={withSuspense(TaskDetailsScreen)}
+			/>
+			<TeamStack.Screen 
+				name="EditScreen"
+				component={withSuspense(EditScreen)}
 			/>
 		</TeamStack.Navigator>
 	);

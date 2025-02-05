@@ -5,6 +5,7 @@ import teamReducer from "./reducers/teamReducer";
 import memberReducer from "./reducers/memberReducer";
 import projectReducer from "./reducers/projectReducer";
 import taskReducer from "./reducers/taskReducer";
+import userReducer from "./reducers/userReducer";
 
 const rootReducer = combineReducers({
 	auth: authReducer,
@@ -12,6 +13,7 @@ const rootReducer = combineReducers({
 	member: memberReducer,
 	project: projectReducer,
 	task: taskReducer,
+	user: userReducer,
 });
 
 const middleware = [thunk];

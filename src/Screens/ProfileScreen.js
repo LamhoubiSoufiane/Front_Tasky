@@ -1,5 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -10,60 +10,72 @@ import {
   StatusBar,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
+import { useDispatch, useSelector } from "react-redux";
+import { getUserProfile } from "../Redux/actions/userActions";
 
-export default function ProfileScreen({navigation}) {
+export default function ProfileScreen({ navigation }) {
+  const dispatch = useDispatch();
+  const user = useSelector(state => state.user.searchResults);
+  console.log("---------------------------------> ", user);
+  useEffect(() => {
+    dispatch(getUserProfile());
+    console.log("Fetching user profile.............> ", user);
+  }, [dispatch]);
+
+  if (user.loading) {
+    return <Text>Loading...</Text>;
+  }
+  if (user.error) {
+    return <Text>{user.error}</Text>;
+  }
 
   return (
-    
     <SafeAreaView style={styles.safeArea}>
-      {/* Status Bar Customization */}
-      <StatusBar backgroundColor="#f2f2f2" barStyle="dark-content" />
- 
-      {/* Background Image */}
-      <View style={styles.backgroundImageContainer}>
+      <StatusBar backgroundColor="#3498db" barStyle="dark-content" />
+      
+      {/* Background image */}
+      <View style={styles.backgroundContainer}>
         <Image
-          source={require("../../assets/logo3.jpeg")} // Ensure the correct path for your image
+          source={require("../../assets/logo.jpeg")} // Assurez-vous que l'image est dans le bon dossier
           resizeMode="cover"
           style={styles.backgroundImage}
         />
       </View>
-        
-      {/* Profile Image and Information */}
+
+      {/* Profile Information */}
       <Animatable.View
         animation="fadeInUpBig"
         duration={1500}
-        style={styles.profileInfoContainer}
+        style={styles.profileContainer}
       >
-        <Image
-          source={require("../../assets/logo1.jpeg")} // Use the same or a different image for the profile picture
+      <Image
+          source={user.profileImage ? { uri: user.profileImage } : require("../../assets/unknownProfile.jpg")}
           resizeMode="contain"
           style={styles.profileImage}
-        />
-        <Text style={styles.profileName}>Youssef kassimi</Text>
-        <Text style={styles.profileEmail}>YoussefKassimi@example.com</Text>
+      />
 
-        <View style={styles.locationContainer}>
-          <MaterialIcons name="location-on" size={24} color="#FF6347" />
-          <Text style={styles.locationText}>Rabat, Morocco</Text>
-        </View>
+
+        <Text style={styles.username}>{user.username}</Text>
+        <Text style={styles.fullName}>{user.nom} {user.prenom}</Text>
+        <Text style={styles.email}>{user.email}</Text>
 
         <View style={styles.statsContainer}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>122</Text>
-              <Text style={styles.statLabel}>Point Total</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>20</Text>
-              <Text style={styles.statLabel}>Point Mensuel</Text>
-            </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{user.pointTotal}</Text>
+            <Text style={styles.statLabel}>Points Total</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{user.pointMensuel}</Text>
+            <Text style={styles.statLabel}>Points Mensuels</Text>
+          </View>
         </View>
 
-       {/* Edit Profile Button */}
-       <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate("EditProfile")}
+        {/* Edit Profile Button */}
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() =>  navigation.navigate("EditProfile")}
         >
-          <Text style={styles.buttonText}>Edit Profile</Text>
+          <Text style={styles.buttonText}>Editer le Profile</Text>
         </TouchableOpacity>
       </Animatable.View>
     </SafeAreaView>
@@ -73,70 +85,84 @@ export default function ProfileScreen({navigation}) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#3498db", // Changement de la couleur de fond en bleu
   },
-  backgroundImageContainer: {
+  backgroundContainer: {
     width: "100%",
-    height: 228,
+    height: 250,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
   },
   backgroundImage: {
-    height: "100%",
     width: "100%",
+    height: "100%",
+    opacity: 0.3, // Réduit l'opacité pour un effet de brillance atténuée
+    filter: "brightness(50%)", // Applique un filtre de réduction de la brillance
   },
-  profileInfoContainer: {
+  profileContainer: {
     flex: 1,
     alignItems: "center",
-    marginTop: -90,
+    marginTop: 160, // Décale le contenu sous l'image de fond
+    padding: 20,
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -10 },
   },
   profileImage: {
-    height: 155,
-    width: 155,
-    borderRadius: 77.5,
-    borderWidth: 2,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
     borderColor: "#FF6347",
     marginBottom: 20,
   },
-  profileName: {
-    fontSize: 22,
+  username: {
+    fontSize: 24,
     fontWeight: "bold",
     color: "#333",
   },
-  profileEmail: {
+  fullName: {
+    fontSize: 18,
+    color: "#777",
+    marginVertical: 5,
+  },
+  email: {
     fontSize: 16,
-    color: "#666",
+    color: "#555",
     marginBottom: 20,
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  locationText: {
-    fontSize: 14,
-    marginLeft: 4,
-    color: "#444",
   },
   statsContainer: {
     flexDirection: "row",
-    marginVertical: 16,
+    justifyContent: "center",
+    width: "100%",
+    marginVertical: 10,
   },
   stat: {
     alignItems: "center",
-    marginHorizontal: 16,
+    marginHorizontal: 10,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#FF6347",
   },
   statLabel: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 14,
+    color: "#777",
   },
-  button: {
+  editButton: {
     backgroundColor: "#4c669f",
-    padding: 15,
-    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    marginTop: 30,
     alignItems: "center",
   },
   buttonText: {

@@ -34,7 +34,10 @@ export default function (state = initialState, action) {
 		case USER_UPDATE:
 			return {
 				...state,
-				currentUser: action.payload,
+				currentUser:{
+					...state.currentUser,
+					...action.payload,
+				},
 				loading: false,
 				error: null,
 			};

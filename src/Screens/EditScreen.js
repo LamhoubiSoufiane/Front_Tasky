@@ -1,4 +1,4 @@
-import React from "react";
+import React,  {useEffect, useState} from "react";
 import {
 	View,
 	StyleSheet,
@@ -12,13 +12,15 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useDispatch, useSelector } from "react-redux";
+import { getUserProfile, updateUserProfile } from "../Redux/actions/userActions";
 
 export default function EditScreen({ navigation }) {
 	// State for form fields
-	const [firstName, setFirstName] = useState("Youssef");
-	const [lastName, setLastName] = useState("Kassimi");
-	const [username, setUsername] = useState("youssef.k");
-	const [email, setEmail] = useState("YoussefKassimi@example.com");
+	const [firstName, setFirstName] = useState("");
+	const [lastName, setLastName] = useState("");
+	const [username, setUsername] = useState("");
+	const [email, setEmail] = useState("");
 	const [profileImage, setProfileImage] = useState(
 		require("../../assets/defaultProfileImage.jpg")
 	); // Default image
@@ -78,6 +80,66 @@ export default function EditScreen({ navigation }) {
 			Alert.alert("Image Selection Cancelled", "You did not select an image.");
 		}
 	};
+
+	const dispatch = useDispatch();
+	const user = useSelector((state) => state.user.searchResults);
+
+	useEffect(() => {
+		dispatch(getUserProfile());
+	  }, [dispatch]);
+	
+	  useEffect(() => {
+		if (user && user.nom && user.prenom && user.username && user.email) {
+		  setFirstName(user.nom);
+		  setLastName(user.prenom);
+		  setUsername(user.username);
+		  setEmail(user.email);
+		  setProfileImage(user.profileImage ? { uri: user.profileImage } : require("../../assets/defaultProfileImage.jpg"));
+		}
+	  }, [user]);
+
+	if (user.loading) {
+    return <Text>Loading...</Text>;
+  }
+  if (user.error) {
+    return <Text>{user.error}</Text>;
+  }
+
+
+
+  	const handleSaveChanges = async () => {
+		console.log("--------<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Valeurs actuelles :", {
+			firstName,
+			lastName,
+			username,
+			email
+		});
+		// Vérifiez si l'image a changé
+		let imageUrl = profileImage.uri ? await uploadImageAsync(profileImage.uri) : null;
+
+		const userData = {
+			nom: firstName,
+			prenom: lastName,
+			username,
+			email,
+			imageUrl,
+		};
+		console.log(' ************************************************ User data to update:', userData); // Vérifie ce que tu envoies
+		const result = await dispatch(updateUserProfile(userData));
+		
+		console.log('**************************************************Dispatch result:', result); // Vérifie la réponse du dispatch
+
+		if (result.success) {
+			// Si la mise à jour a réussi, tu peux afficher une alerte ou rediriger l'utilisateur.
+			Alert.alert('Profile updated', 'Your profile has been successfully updated!');
+			// Optionnellement, tu peux naviguer vers un autre écran.
+			navigation.navigate("EditProfile"); // HomeScreen
+		  } else {
+			// Si la mise à jour échoue, tu peux afficher l'erreur.
+			Alert.alert('Error', result.error);
+		  }
+	};
+	
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -147,7 +209,7 @@ export default function EditScreen({ navigation }) {
 				</View>
 
 				{/* Save Button */}
-				<TouchableOpacity style={styles.saveButton}>
+				<TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
 					<Text style={styles.saveButtonText}>Save Changes</Text>
 				</TouchableOpacity>
 			</View>
