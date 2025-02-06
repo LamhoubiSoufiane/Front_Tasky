@@ -32,3 +32,8 @@ export const USER_LOADING = "USER_LOADING";
 export const USER_ERROR = "USER_ERROR";
 export const USER_SUCCESS = "USER_SUCCESS";
 export const USER_UPDATE = "USER_UPDATE";
+
+// Task Action Types
+export const UPDATE_TASK = 'UPDATE_TASK';
+export const DELETE_TASK = 'DELETE_TASK';
+export const UPDATE_TASK_STATUS = 'UPDATE_TASK_STATUS';
