@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import {
 	SafeAreaView,
 	View,
@@ -72,6 +72,11 @@ const TeamScreen = () => {
 		}
 	}, [user?.id, dispatch, loadAllTeamMembers]);
 
+	// Charger les équipes automatiquement au montage du composant
+	useEffect(() => {
+		handleLoadTeams();
+	}, [handleLoadTeams]);
+
 	const handleTeamPress = useCallback((team) => {
 		navigation?.navigate("TeamDetails", { team });
 	}, [navigation]);
@@ -102,13 +107,8 @@ const TeamScreen = () => {
 			<Text style={styles.emptySubText}>
 				Créez une équipe pour commencer
 			</Text>
-			<TouchableOpacity
-				style={[styles.addButton, { marginTop: 20 }]}
-				onPress={handleLoadTeams}>
-				<Text style={styles.buttonText}>Charger les équipes</Text>
-			</TouchableOpacity>
 		</View>
-	), [handleLoadTeams]);
+	), []);
 
 	if (loading) {
 		return (
@@ -199,93 +199,69 @@ const styles = StyleSheet.create({
 		fontWeight: "900",
 		color: "#fff",
 		letterSpacing: 1,
-		textShadowColor: 'rgba(0, 0, 0, 0.25)',
-		textShadowOffset: { width: 0, height: 3 },
-		textShadowRadius: 4,
-		position: 'relative',
 		zIndex: 2,
 	},
 	addButton: {
-		width: 56,
-		height: 56,
-		borderRadius: 28,
 		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		width: 44,
+		height: 44,
+		borderRadius: 22,
 		justifyContent: "center",
 		alignItems: "center",
-		borderWidth: 2,
-		borderColor: "rgba(255, 255, 255, 0.4)",
-		elevation: 5,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 3 },
-		shadowOpacity: 0.25,
-		shadowRadius: 5,
-		position: 'relative',
 		zIndex: 2,
 	},
-	buttonText: {
-		color: "#fff",
-		fontSize: 16,
-		fontWeight: "700",
-		letterSpacing: 0.5,
-	},
 	listContainer: {
-		paddingHorizontal: 20,
-		paddingVertical: 15,
-		flexGrow: 1,
+		padding: 16,
+		paddingBottom: 100,
 	},
 	teamItem: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "space-between",
 		backgroundColor: "#fff",
-		padding: 22,
-		borderRadius: 16,
-		marginBottom: 15,
-		elevation: 4,
+		padding: 16,
+		borderRadius: 12,
+		marginBottom: 12,
+		elevation: 2,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.15,
+		shadowOpacity: 0.1,
 		shadowRadius: 4,
-		transform: [{ scale: 1 }],
 	},
 	teamInfo: {
 		flex: 1,
-		marginLeft: 5,
 	},
 	teamName: {
-		fontSize: 20,
-		fontWeight: "800",
-		color: "#2c3e50",
-		marginBottom: 6,
-		letterSpacing: 0.3,
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#333",
+		marginBottom: 4,
 	},
 	memberCount: {
-		fontSize: 15,
-		color: "#7f8c8d",
-		fontWeight: "500",
-		letterSpacing: 0.2,
+		fontSize: 14,
+		color: "#666",
 	},
 	emptyContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		paddingHorizontal: 25,
-		paddingVertical: 40,
+		paddingTop: 32,
 	},
 	emptyText: {
-		fontSize: 22,
-		fontWeight: "800",
-		color: "#34495e",
-		marginBottom: 12,
-		textAlign: "center",
-		letterSpacing: 0.3,
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#333",
+		marginBottom: 8,
 	},
 	emptySubText: {
-		fontSize: 17,
-		color: "#7f8c8d",
-		marginBottom: 25,
+		fontSize: 14,
+		color: "#666",
 		textAlign: "center",
-		lineHeight: 24,
-		letterSpacing: 0.2,
+	},
+	buttonText: {
+		color: "#fff",
+		fontSize: 16,
+		fontWeight: "600",
 	},
 });
 
