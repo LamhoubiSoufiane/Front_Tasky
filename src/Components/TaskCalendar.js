@@ -1,61 +1,66 @@
-import React, { memo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { memo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors } from '../assets/colors';
 
 const TaskCalendar = memo(({ selectedDate, onDateSelect }) => {
-  const getDaysInWeek = () => {
-    const today = new Date();
-    const days = [];
-    for (let i = -3; i <= 3; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      days.push({
-        date: date.getDate(),
-        day: date.toLocaleString('default', { weekday: 'short' }),
-        month: date.toLocaleString('default', { month: 'short' }),
-        full: date,
-      });
-    }
-    return days;
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const formatDate = (date) => {
+    return {
+      date: date.getDate(),
+      day: date.toLocaleDateString('fr-FR', { weekday: 'short' }),
+      month: date.toLocaleDateString('fr-FR', { month: 'short' }),
+      full: date,
+    };
   };
+
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      onDateSelect(date);
+    }
+  };
+
+  const formattedSelectedDate = formatDate(selectedDate || new Date());
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Today's Tasks</Text>
-        <TouchableOpacity>
-          <Text style={styles.dayText}>Day</Text>
+        <Text style={styles.title}>Tâches du jour</Text>
+        <TouchableOpacity 
+          style={styles.datePickerButton}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={styles.datePickerButtonText}>Choisir une date</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.calendar}
-      >
-        {getDaysInWeek().map((day, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.dayContainer,
-              day.date === selectedDate?.getDate() && styles.selectedDay
-            ]}
-            onPress={() => onDateSelect(day.full)}
-          >
-            <Text style={[
-              styles.monthText,
-              day.date === selectedDate?.getDate() && styles.selectedText
-            ]}>{day.month}</Text>
-            <Text style={[
-              styles.dateText,
-              day.date === selectedDate?.getDate() && styles.selectedText
-            ]}>{day.date}</Text>
-            <Text style={[
-              styles.dayNameText,
-              day.date === selectedDate?.getDate() && styles.selectedText
-            ]}>{day.day}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+
+      <View style={styles.selectedDateContainer}>
+        <TouchableOpacity
+          style={[styles.dayContainer, styles.selectedDay]}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={[styles.monthText, styles.selectedText]}>
+            {formattedSelectedDate.month}
+          </Text>
+          <Text style={[styles.dateText, styles.selectedText]}>
+            {formattedSelectedDate.date}
+          </Text>
+          <Text style={[styles.dayNameText, styles.selectedText]}>
+            {formattedSelectedDate.day}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleDateChange}
+        />
+      )}
     </View>
   );
 });
@@ -77,19 +82,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  dayText: {
-    color: colors.primary,
+  datePickerButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  datePickerButtonText: {
+    color: '#fff',
     fontSize: 14,
   },
-  calendar: {
+  selectedDateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     paddingHorizontal: 8,
   },
   dayContainer: {
-    width: 60,
-    height: 80,
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
     borderRadius: 12,
     backgroundColor: '#f5f5f5',
   },
@@ -97,17 +109,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   monthText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
   },
   dateText: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
     marginVertical: 4,
   },
   dayNameText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
   },
   selectedText: {
@@ -115,4 +127,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TaskCalendar; 
+export default TaskCalendar;

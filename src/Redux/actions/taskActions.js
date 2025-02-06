@@ -45,6 +45,9 @@ export const TASK_TYPES = {
   DELETE_TASK: "DELETE_TASK",
   SET_TASKS: "SET_TASKS",
   SET_PROJECT_TASKS: "SET_PROJECT_TASKS",
+  TASKS_FETCH_START: 'TASKS_FETCH_START',
+  TASKS_FETCH_SUCCESS: 'TASKS_FETCH_SUCCESS',
+  TASKS_FETCH_FAILURE: 'TASKS_FETCH_FAILURE',
 };
 
 // Action Creators
@@ -119,16 +122,17 @@ export const createTask = (taskData) => async (dispatch) => {
     const formattedData = {
       nom: taskData.titre,
       description: taskData.description,
-      startDate: new Date(taskData.dueDate).toISOString().split("T")[0],
-      endDate: new Date(taskData.dueDate).toISOString().split("T")[0],
+      startDate: new Date(taskData.startDate).toISOString().split("T")[0],
+      endDate: new Date(taskData.endDate).toISOString().split("T")[0],
       priority: "normale",
       statut: "a faire",
       projetId: parseInt(taskData.projectId),
-      location: {
+      location: taskData.location,
+      /*{
         latitude: 33.5731104,
         longitude: -7.5898434,
         address: "Casablanca, Morocco",
-      },
+      },*/
     };
 
     console.log("Données formatées pour la création:", formattedData);
@@ -302,3 +306,44 @@ export const updateTaskStatus = (taskId, status) => async (dispatch) => {
     dispatch(setLoading(false));
   }
 };
+
+export const fetchUserTasks = ({ token, userId }) => async (dispatch, getState) => {
+  try {
+    console.log('Fetching tasks for user:', userId); // Debug
+    dispatch({ type: TASK_TYPES.TASKS_FETCH_START });
+    
+    const response = await api.get(`/tasks/tasksByUserId/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
+    console.log('Tasks received:', response.data); // Debug
+
+    if (Array.isArray(response.data)) {
+      dispatch({
+        type: TASK_TYPES.TASKS_FETCH_SUCCESS,
+        payload: response.data
+      });
+    } else {
+      console.error('Invalid response format:', response.data);
+      dispatch({
+        type: TASK_TYPES.TASKS_FETCH_FAILURE,
+        payload: 'Format de réponse invalide'
+      });
+    }
+
+  } catch (error) {
+    console.error('Error fetching tasks:', error.response || error); // Debug
+    const errorMessage = error.response?.status === 401 
+      ? 'Session expirée, veuillez vous reconnecter'
+      : error.response?.data?.message || error.message;
+    dispatch({
+      type: TASK_TYPES.TASKS_FETCH_FAILURE,
+      payload: errorMessage
+    });
+  }
+};
+
+// Action pour invalider le cache
+export const invalidateTasksCache = () => ({ type: 'TASKS_CACHE_INVALIDATE' });

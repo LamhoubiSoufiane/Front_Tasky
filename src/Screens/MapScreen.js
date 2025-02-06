@@ -1,97 +1,210 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, Text, Alert } from 'react-native';
 import MapView, { Marker, UrlTile, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
+import {
+  fetchUserTasks,
+} from "../Redux/actions/taskActions";
+import {
+  selectTasks,
+  selectTasksLoading,
+  selectTaskError,
+  selectUser,
+  selectAuthToken,
+  selectValidTasks,
+  selectIsAuthenticated
+} from "../Redux/selectors/taskSelectors";
 
 const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 const MapScreen = () => {
+  const navigation = useNavigation();
   const [userLocation, setUserLocation] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [calculatingRoute, setCalculatingRoute] = useState(false);
+  const [showRouteDetails, setShowRouteDetails] = useState(false);
   const mapRef = useRef(null);
 
-  const mockTasks = [
-    {
-      id: 1,
-      nom: "Tâche 1",
-      description: "Description tâche 1",
-      location: { latitude: 33.5731, longitude: -7.5898 } // Exemple Casablanca
-    }
-  ];
+  // Utiliser les sélecteurs mémorisés
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const tasks = useSelector(selectTasks);
+  const tasksLoading = useSelector(selectTasksLoading);
+  const error = useSelector(selectTaskError);
+  const user = useSelector(selectUser);
+  const authToken = useSelector(selectAuthToken);
+  const validTasks = useSelector(selectValidTasks);
+  
+  const dispatch = useDispatch();
 
+  // Vérifier l'authentification
   useEffect(() => {
-    const getLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        
-        if (status !== 'granted') {
-          Alert.alert('Permission requise', 'L\'application a besoin de votre localisation');
-          return;
-        }
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Non connecté',
+        'Vous devez être connecté pour accéder à vos tâches',
+        [
+          {
+            text: 'Se connecter',
+            onPress: () => navigation.navigate('Login')
+          }
+        ]
+      );
+    }
+  }, [isAuthenticated, navigation]);
 
-        let location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421
-        });
-
-      } catch (error) {
-        Alert.alert('Erreur', 'Impossible de récupérer la position');
-      } finally {
-        setLoading(false);
+  const fetchInitialData = useCallback(async () => {
+    try {
+      // Vérifier l'authentification d'abord
+      if (!isAuthenticated || !user?.id || !authToken) {
+        console.log('Auth state:', { isAuthenticated, userId: user?.id, hasToken: !!authToken });
+        return;
       }
-    };
 
-    getLocation();
-  }, []);
+      // Permission de localisation
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission requise', 'L\'application a besoin de votre localisation');
+        return;
+      }
+
+      // Position utilisateur
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421
+      });
+
+      console.log('Fetching tasks with:', { userId: user.id, token: authToken ? 'exists' : 'missing' });
+
+      // Récupération des tâches depuis Redux
+      dispatch(fetchUserTasks({ 
+        token: authToken, 
+        userId: user.id 
+      }));
+
+    } catch (error) {
+      console.error('Error in fetchInitialData:', error);
+      Alert.alert('Erreur', error.message || 'Erreur initialisation');
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, authToken, user, isAuthenticated]);
+
+  // Effet pour charger les données initiales
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  // Effet pour recharger les tâches quand l'authentification change
+  useEffect(() => {
+    if (isAuthenticated && user?.id && authToken) {
+      dispatch(fetchUserTasks({ token: authToken, userId: user.id }));
+    }
+  }, [isAuthenticated, user?.id, authToken]);
 
   // Calcul d'itinéraire
   const getRoute = async (start, end) => {
+    setCalculatingRoute(true);
     try {
+      console.log('Calculating route from:', start, 'to:', end);
+      
+      // Vérifier les coordonnées
+      if (!start || !end || !start.latitude || !start.longitude || !end.latitude || !end.longitude) {
+        throw new Error('Coordonnées invalides');
+      }
+
       const response = await axios.get(
         `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`
       );
-  
-      console.log('Geometry reçue:', response.data.routes[0].geometry);
+
+      if (!response.data || !response.data.routes || !response.data.routes[0]) {
+        throw new Error('Format de réponse invalide');
+      }
+
+      console.log('Route received:', response.data);
       
       // Conversion des coordonnées GeoJSON [lon,lat] vers [lat,lon]
       const coordinates = response.data.routes[0].geometry.coordinates.map(coord => ({
         latitude: coord[1],
         longitude: coord[0]
       }));
-  
-      console.log('Coordonnées converties:', coordinates.slice(0, 5)); // Affiche les 5 premiers points
       
       if (coordinates.length === 0) {
-        throw new Error('Aucune coordonnée valide');
+        throw new Error('Aucune coordonnée dans l\'itinéraire');
       }
-  
+
+      // Calculer la distance et la durée
+      const distance = (response.data.routes[0].distance / 1000).toFixed(1); // km
+      const duration = Math.round(response.data.routes[0].duration / 60); // minutes
+
+      console.log('Route coordinates:', coordinates.length, 'points');
+      
+      // Mettre à jour les coordonnées et ajuster la vue de la carte
       setRouteCoordinates(coordinates);
       
-      // Ajustement de la région de la carte
-      const newRegion = {
-        latitude: (start.latitude + end.latitude) / 2,
-        longitude: (start.longitude + end.longitude) / 2,
-        latitudeDelta: Math.abs(start.latitude - end.latitude) * 2,
-        longitudeDelta: Math.abs(start.longitude - end.longitude) * 2
-      };
-      mapRef.current.animateToRegion(newRegion, 1000);
-  
+      // Ajuster la vue de la carte pour montrer tout l'itinéraire
+      const padding = 50;
+      setTimeout(() => {
+        mapRef.current.fitToCoordinates(
+          [
+            { latitude: start.latitude, longitude: start.longitude },
+            { latitude: end.latitude, longitude: end.longitude },
+            ...coordinates
+          ],
+          {
+            edgePadding: {
+              top: padding,
+              right: padding,
+              bottom: padding,
+              left: padding
+            },
+            animated: true
+          }
+        );
+      }, 100);
+
+      // Mettre à jour les détails de l'itinéraire
+      setSelectedTask(prev => ({
+        ...prev,
+        routeInfo: {
+          distance,
+          duration
+        }
+      }));
+
+      // Attendre un peu pour s'assurer que les coordonnées sont bien mises à jour
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setShowRouteDetails(true);
+
     } catch (error) {
-      console.error('Erreur de tracé:', {
-        error: error.message,
-        response: error.response?.data
-      });
-      Alert.alert('Erreur', `Détails : ${error.message || 'Format de réponse inattendu'}`);
+      console.error('Erreur lors du calcul de l\'itinéraire:', error);
+      Alert.alert(
+        'Erreur',
+        'Impossible de calculer l\'itinéraire. Veuillez réessayer.'
+      );
+      setShowRouteDetails(false);
+      setRouteCoordinates([]);
+    } finally {
+      setCalculatingRoute(false);
     }
   };
 
-  if (loading) {
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>Veuillez vous connecter pour voir vos tâches</Text>
+      </View>
+    );
+  }
+
+  if (loading || tasksLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -110,14 +223,12 @@ const MapScreen = () => {
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421
         }}
-        region={userLocation}
       >
         <UrlTile
           urlTemplate={OSM_TILE_URL}
           maximumZ={19}
         />
 
-        {/* Marqueur utilisateur */}
         {userLocation && (
           <Marker
             coordinate={userLocation}
@@ -126,31 +237,57 @@ const MapScreen = () => {
           />
         )}
 
-        {/* Marqueurs des tâches */}
-        {mockTasks.map(task => (
-          <Marker
-            key={task.id}
-            coordinate={task.location}
-            title={task.nom}
-            description={task.description}
-            pinColor="red"
-            onPress={() => setSelectedTask(task)}
-          />
-        ))}
+        {validTasks && validTasks.length > 0 ? (
+          validTasks.map(task => {
+            const latitude = parseFloat(task.location.latitude);
+            const longitude = parseFloat(task.location.longitude);
+            
+            if (isNaN(latitude) || isNaN(longitude)) {
+              console.warn('Invalid coordinates for task:', task.id);
+              return null;
+            }
+
+            return (
+              <Marker
+                key={task.id}
+                coordinate={{
+                  latitude,
+                  longitude
+                }}
+                title={task.nom || 'Tâche sans nom'}
+                description={task.description || 'Aucune description'}
+                pinColor="red"
+                onPress={() => {
+                  setShowRouteDetails(false);
+                  setRouteCoordinates([]);
+                  setSelectedTask(task);
+                }}
+              />
+            );
+          })
+        ) : (
+          console.log('No valid tasks to display', { validTasks })
+        )}
 
         {routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
-            strokeWidth={5}
-            strokeColor="#FF0000"
-            lineDashPattern={[10, 10]}
-            key={JSON.stringify(routeCoordinates)} // Force le re-render
+            strokeWidth={4}
+            strokeColor="#2196F3"
           />
         )}
       </MapView>
 
-      {/* Confirmation d'itinéraire */}
-      {selectedTask && (
+      {/* Modal de calcul d'itinéraire */}
+      {calculatingRoute && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#2196F3" />
+          <Text style={styles.loadingText}>Calcul de l'itinéraire...</Text>
+        </View>
+      )}
+
+      {/* Modal des détails de la tâche */}
+      {selectedTask && !showRouteDetails && (
         <Modal transparent animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -160,23 +297,68 @@ const MapScreen = () => {
               <TouchableOpacity 
                 style={styles.button}
                 onPress={() => {
-                  if (userLocation) {
-                    getRoute(userLocation, selectedTask.location);
+                  if (userLocation && selectedTask.location) {
+                    const taskLocation = {
+                      latitude: parseFloat(selectedTask.location.latitude),
+                      longitude: parseFloat(selectedTask.location.longitude)
+                    };
+                    getRoute(userLocation, taskLocation);
                   }
-                  setSelectedTask(null);
                 }}
               >
                 <Text style={styles.buttonText}>Tracer l'itinéraire</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.button, styles.closeButton]}
+                onPress={() => {
+                  setSelectedTask(null);
+                  setRouteCoordinates([]);
+                  setShowRouteDetails(false);
+                }}
+              >
+                <Text style={styles.buttonText}>Fermer</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
       )}
+
+      {/* Modal des détails de l'itinéraire */}
+      {showRouteDetails && selectedTask && (
+        <View style={styles.routeDetailsContainer}>
+          <View style={styles.routeDetailsContent}>
+            <Text style={styles.routeDetailsTitle}>Détails de l'itinéraire</Text>
+            {selectedTask.routeInfo && (
+              <>
+                <Text style={styles.routeDetailsText}>
+                  Distance : {selectedTask.routeInfo.distance} km
+                </Text>
+                <Text style={styles.routeDetailsText}>
+                  Durée estimée : {selectedTask.routeInfo.duration} min
+                </Text>
+              </>
+            )}
+            <TouchableOpacity 
+              style={[styles.button, styles.closeButton]}
+              onPress={() => {
+                setSelectedTask(null);
+                setShowRouteDetails(false);
+                // Attendre un peu avant d'effacer les coordonnées
+                setTimeout(() => {
+                  setRouteCoordinates([]);
+                }, 100);
+              }}
+            >
+              <Text style={styles.buttonText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
 
-// Styles identiques à la version précédente
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -189,17 +371,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContainer: {
-    flex: 1,
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#2196F3',
+  },
+  message: {
+    fontSize: 16,
+    textAlign: 'center',
+    margin: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: 'white',
     padding: 20,
-    borderRadius: 10,
-    width: '80%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   modalTitle: {
     fontSize: 18,
@@ -207,14 +408,49 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalDescription: {
-    fontSize: 16,
     marginBottom: 20,
+  },
+  routeDetailsContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+  },
+  routeDetailsContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 10,
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  routeDetailsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#2196F3',
+  },
+  routeDetailsText: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#333',
   },
   button: {
     backgroundColor: '#2196F3',
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 10,
     alignItems: 'center',
+    marginVertical: 5,
+  },
+  closeButton: {
+    backgroundColor: '#ff4444',
   },
   buttonText: {
     color: 'white',
@@ -223,146 +459,3 @@ const styles = StyleSheet.create({
 });
 
 export default MapScreen;
-/*
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
-import * as Location from 'expo-location';
-import { useDispatch, useSelector } from 'react-redux';
-import { setUserLocation, loadInitialTasks } from '../Redux/actions/taskActions';
-import { mockTasks } from '../data/mockTasks';
-import MapViewDirections from 'react-native-maps-directions';
-
-const MapScreen = () => {
-  const dispatch = useDispatch();
-  const userLocation = useSelector((state) => state.task?.userLocation);
-  const loading = useSelector((state) => state.task?.loading);
-  const [mapReady, setMapReady] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [showRoute, setShowRoute] = useState(false);
-  const tasks = mockTasks;
-
-  const initialRegion = {
-    latitude: 33.5731104,
-    longitude: -7.5898434,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  };
-
-  useEffect(() => {
-    const getUserLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          console.error('Permission to access location was denied');
-          return;
-        }
-
-        let location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        dispatch(setUserLocation(location.coords));
-      } catch (error) {
-        console.error('Error getting location:', error);
-      }
-    };
-
-    getUserLocation();
-    dispatch(loadInitialTasks());
-  }, [dispatch]);
-
-  const onMapReady = () => {
-    setMapReady(true);
-  };
-
-  const handleTaskPress = (task) => {
-    setSelectedTask(task);
-    Alert.alert(
-      `Tâche: ${task.nom}`,
-      `${task.description}\n\nVoulez-vous tracer le trajet jusqu'à cette tâche ?`,
-      [
-        { text: 'Non', onPress: () => setShowRoute(false), style: 'cancel' },
-        { text: 'Oui', onPress: () => setShowRoute(true) },
-      ]
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={initialRegion}
-        provider={PROVIDER_DEFAULT}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-        onMapReady={onMapReady}
-        rotateEnabled={true}
-        scrollEnabled={true}
-        zoomEnabled={true}
-      >
-        {mapReady && Array.isArray(tasks) && tasks.map((task) => (
-          <Marker
-            key={task.id}
-            coordinate={{
-              latitude: task.location.latitude,
-              longitude: task.location.longitude,
-            }}
-            title={task.nom}
-            description={task.description}
-            pinColor={task.priority === 'URGENT' ? 'red' : 'orange'}
-            onPress={() => handleTaskPress(task)}
-          />
-        ))}
-
-        {showRoute && selectedTask && userLocation && (
-          <MapViewDirections
-            origin={userLocation}
-            destination={{
-              latitude: selectedTask.location.latitude,
-              longitude: selectedTask.location.longitude,
-            }}
-            apikey="VOTRE_CLE_API_GOOGLE_MAPS" // Remplacez par votre clé API Google Maps
-            strokeWidth={3}
-            strokeColor="blue"
-            onReady={(result) => {
-              console.log('Distance:', result.distance, 'km');
-              console.log('Durée:', result.duration, 'min');
-            }}
-            onError={(errorMessage) => {
-              console.error('Erreur de traçage:', errorMessage);
-            }}
-          />
-        )}
-      </MapView>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
-
-export default React.memo(MapScreen);
-
-
-
-*/ 

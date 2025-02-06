@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = "http://192.168.11.105:3000";
+export const API_BASE_URL = "http://192.168.1.21:3000";
 export const API_ENDPOINTS = {
 	AUTH: {
 		LOGIN: "/auth/login",
@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
 	TASKS: {
 		BASE: "/tasks",
 		CREATE: "/tasks",
+		BYMEMBER:"/tasks/my-tasks",
 		USER: (userId) => `/tasks/user/${userId}`,
 		TEAM: (teamId) => `/tasks/team/${teamId}`,
 		PROJECT: (projectId) => `/tasks/project/${projectId}`,

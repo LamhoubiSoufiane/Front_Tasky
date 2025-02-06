@@ -56,8 +56,8 @@ const AddTaskForm = ({ visible, onClose, onSubmit, members = [] }) => {
 			description,
 			assignedToId: selectedMember?.id,
 			startDate: startDate.toISOString(),
-			endDate: endDate?.toISOString(),
-			status: "EN_ATTENTE",
+			endDate: endDate ? endDate.toISOString(): null,
+			//status: "EN_ATTENTE",
 		};
 		if (location) {
 			taskData.location = {
@@ -65,6 +65,10 @@ const AddTaskForm = ({ visible, onClose, onSubmit, members = [] }) => {
 				longitude: location.longitude,
 			};
 		}
+		else{
+			taskData.location = null
+		}
+		//console.log("taaaaskk data : ",taskData);
 
 		onSubmit(
 			taskData
@@ -135,61 +139,58 @@ const AddTaskForm = ({ visible, onClose, onSubmit, members = [] }) => {
 						</View>
 
 						<View style={styles.inputContainer}>
-														<Text style={styles.label}>Date de début *</Text>
-															<TouchableOpacity 
-																style={styles.dateInput} 
-																onPress={() => setShowDatePicker({ ...showDatePicker, start: true })}>
-																<Text>{startDate.toLocaleDateString('fr-FR')}</Text>
-															</TouchableOpacity>
-															{showDatePicker.start && (
-																<DateTimePicker
-																	value={startDate}
-																	mode="date"
-																	display="default"
-																	onChange={(e, d) => handleDateChange(e, d, 'start')}
-																/>
-															)}
-													</View>
+							<Text style={styles.label}>Date de début *</Text>
+							<TouchableOpacity style={styles.dateInput} 
+												onPress={() => setShowDatePicker({ ...showDatePicker, start: true })}>
+								<Text>{startDate.toLocaleDateString('fr-FR')}</Text>
+							</TouchableOpacity>
+							{showDatePicker.start && (
+								<DateTimePicker
+									value={startDate}
+									mode="date"
+									display="default"
+									onChange={(e, d) => handleDateChange(e, d, 'start')}
+								/>
+							)}
+						</View>
 						{/* Date de fin */}
-													<View style={styles.inputContainer}>
-														<Text style={styles.label}>Date de fin prévue</Text>
-														<TouchableOpacity 
-															style={styles.dateInput} 
-															onPress={() => setShowDatePicker({ ...showDatePicker, end: true })}>
-																<Text>{endDate ? endDate.toLocaleDateString('fr-FR') : 'Sélectionner une date'}</Text>
-														</TouchableOpacity>
-														{showDatePicker.end && (
-															<DateTimePicker
-																value={endDate || new Date()}
-																mode="date"
-																display="default"
-																onChange={(e, d) => handleDateChange(e, d, 'end')}
-															/>
-														)}
-													</View>
+						<View style={styles.inputContainer}>
+							<Text style={styles.label}>Date de fin prévue</Text>
+							<TouchableOpacity style={styles.dateInput} 
+												onPress={() => setShowDatePicker({ ...showDatePicker, end: true })}>
+								<Text>{endDate ? endDate.toLocaleDateString('fr-FR') : 'Sélectionner une date'}</Text>
+							</TouchableOpacity>
+							{showDatePicker.end && (
+								<DateTimePicker value={endDate || new Date()}
+												mode="date"
+												display="default"
+												onChange={(e, d) => handleDateChange(e, d, 'end')}
+								/>
+							)}
+						</View>
 						{/* Localisation */}
-													<View style={styles.inputContainer}>
-														<Text style={styles.label}>Localisation</Text>
-														<TouchableOpacity style={styles.mapButton} onPress={() => setShowMap(true)}>
-															<Icon name="map-marker" size={20} color={colors.primary} />
-															<Text style={styles.mapButtonText}>
-																{location ? 'Localisation sélectionnée' : 'Ajouter une localisation'}
-															</Text>
-														</TouchableOpacity>
-														{location && (
-															<View style={styles.mapPreview}>
-																<MapView style={styles.miniMap}
-																initialRegion={{
-																	...location,
-																	latitudeDelta: 0.0922,
-																	longitudeDelta: 0.0421,
-																}}
-																scrollEnabled={false}>
-																	<Marker coordinate={location} />
-																</MapView>
-															</View>
-														)}
-													 </View>
+						<View style={styles.inputContainer}>
+							<Text style={styles.label}>Localisation</Text>
+							<TouchableOpacity style={styles.mapButton} onPress={() => setShowMap(true)}>
+								<Icon name="map-marker" size={20} color={colors.primary} />
+									<Text style={styles.mapButtonText}>
+										{location ? 'Localisation sélectionnée' : 'Ajouter une localisation'}
+									</Text>
+							</TouchableOpacity>
+							{location && (
+								<View style={styles.mapPreview}>
+									<MapView style={styles.miniMap}
+										initialRegion={{
+											...location,
+											latitudeDelta: 0.0922,
+											longitudeDelta: 0.0421,
+										}}
+										scrollEnabled={false}>
+										<Marker coordinate={location} />
+									</MapView>
+								</View>
+							)}
+						</View>
 						<View style={styles.inputGroup}>
 							<Text style={styles.label}>Assigner à</Text>
 							<ScrollView
