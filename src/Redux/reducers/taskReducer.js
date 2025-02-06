@@ -18,26 +18,27 @@ const initialState = {
 
 const taskReducer = (state = initialState, action) => {
     switch (action.type) {
-        case TASK_TYPES.SET_LOADING:
+        case TASK_TYPES.TASKS_FETCH_START:
             return {
                 ...state,
-                loading: action.payload,
+                loading: true,
                 error: null,
             };
 
-        case TASK_TYPES.SET_ERROR:
-            return {
-                ...state,
-                error: action.payload,
-                loading: false,
-            };
-
-        case TASK_TYPES.SET_TASKS:
+        case TASK_TYPES.TASKS_FETCH_SUCCESS:
+            console.log('Reducer: Updating tasks with:', action.payload);
             return {
                 ...state,
                 tasks: action.payload,
                 loading: false,
                 error: null,
+            };
+
+        case TASK_TYPES.TASKS_FETCH_FAILURE:
+            return {
+                ...state,
+                error: action.payload,
+                loading: false,
             };
 
         case TASK_TYPES.SET_PROJECT_TASKS:

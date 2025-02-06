@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   progressCard: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#4c669f',
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',

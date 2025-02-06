@@ -77,6 +77,8 @@ const CreateTeamScreen = () => {
 
 	const renderHeader = useMemo(() => (
 		<View style={styles.header}>
+			<View style={styles.headerBackground} />
+			<View style={styles.headerGradient} />
 			<TouchableOpacity
 				style={styles.backButton}
 				onPress={handleBackPress}>
@@ -128,6 +130,7 @@ const CreateTeamScreen = () => {
 		<View style={styles.container}>
 			{renderHeader}
 			<ScrollView
+				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
 				keyboardShouldPersistTaps="handled">
 				<FormContainer />
@@ -139,77 +142,145 @@ const CreateTeamScreen = () => {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#fff",
+		backgroundColor: "#eef2f3",
+	},
+	scrollView: {
+		flex: 1,
 	},
 	scrollContent: {
 		flexGrow: 1,
-		padding: 20,
+		padding: 25,
 	},
 	header: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		padding: 20,
-		paddingTop: 60,
-		backgroundColor: colors.primary,
+		paddingVertical: 35,
+		paddingHorizontal: 25,
+		backgroundColor: "#4c669f",
+		borderBottomLeftRadius: 35,
+		borderBottomRightRadius: 35,
+		elevation: 10,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 6 },
+		shadowOpacity: 0.3,
+		shadowRadius: 10,
+		marginBottom: 15,
+		position: 'relative',
+		overflow: 'hidden',
+	},
+	headerBackground: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: '#4c669f',
+		opacity: 0.9,
+		zIndex: 1,
+	},
+	headerGradient: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: 'rgba(255, 255, 255, 0.1)',
+		transform: [{ skewY: '-5deg' }],
+		zIndex: 1,
 	},
 	backButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.3)",
+		width: 42,
+		height: 42,
+		borderRadius: 21,
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1.5,
+		borderColor: "rgba(255, 255, 255, 0.4)",
+		elevation: 5,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 3 },
+		shadowOpacity: 0.25,
+		shadowRadius: 5,
+		position: 'relative',
+		zIndex: 2,
 	},
 	placeholder: {
-		width: 40,
+		width: 42,
 	},
 	title: {
-		fontSize: 20,
-		fontWeight: "bold",
+		fontSize: 32,
+		fontWeight: "900",
 		color: "#fff",
+		letterSpacing: 1,
+		textShadowColor: 'rgba(0, 0, 0, 0.25)',
+		textShadowOffset: { width: 0, height: 3 },
+		textShadowRadius: 4,
+		position: 'relative',
+		zIndex: 2,
 	},
 	formContainer: {
-		padding: 20,
+		padding: 25,
 		backgroundColor: "#fff",
-		borderRadius: 10,
+		borderRadius: 20,
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 4,
+		},
+		shadowOpacity: 0.2,
+		shadowRadius: 8,
+		elevation: 8,
+		marginTop: 10,
+	},
+	label: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#2c3e50",
+		marginBottom: 12,
+		letterSpacing: 0.3,
+	},
+	input: {
+		height: 55,
+		borderWidth: 2,
+		borderColor: "#e0e7ff",
+		borderRadius: 15,
+		paddingHorizontal: 20,
+		fontSize: 16,
+		color: "#2c3e50",
+		backgroundColor: "#f8faff",
+		marginBottom: 25,
 		shadowColor: "#000",
 		shadowOffset: {
 			width: 0,
 			height: 2,
 		},
-		shadowOpacity: 0.25,
-		shadowRadius: 3.84,
-		elevation: 5,
-	},
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 10,
-	},
-	input: {
-		height: 50,
-		borderWidth: 1,
-		borderColor: "#ddd",
-		borderRadius: 8,
-		paddingHorizontal: 15,
-		fontSize: 16,
-		color: "#333",
-		backgroundColor: "#f9f9f9",
-		marginBottom: 20,
+		shadowOpacity: 0.1,
+		shadowRadius: 3,
+		elevation: 2,
 	},
 	createButton: {
-		backgroundColor: colors.primary,
-		height: 50,
-		borderRadius: 8,
+		backgroundColor: "#4c669f",
+		height: 55,
+		borderRadius: 15,
 		justifyContent: "center",
 		alignItems: "center",
+		elevation: 5,
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 3,
+		},
+		shadowOpacity: 0.25,
+		shadowRadius: 5,
+		marginTop: 10,
 	},
 	buttonText: {
 		color: "#fff",
-		fontSize: 16,
-		fontWeight: "600",
+		fontSize: 18,
+		fontWeight: "700",
+		letterSpacing: 0.5,
 	},
 });
 

@@ -8,6 +8,7 @@ import CreateProjectScreen from "../Screens/CreateProjectScreen";
 import EditScreen from "../Screens/EditScreen";
 
 const MapScreen = lazy(() => import("../Screens/MapScreen"));
+//const MapScreen = lazy(() => import('./Screens/MapScreen').then(module => ({ default: module.MapScreen })));
 const TaskScreen = lazy(() => import("../Screens/TaskScreen"));
 const MessageScreen = lazy(() => import("../Screens/MessageScreen"));
 const TeamScreen = lazy(() => import("../Screens/TeamScreen"));

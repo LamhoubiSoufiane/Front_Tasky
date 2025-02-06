@@ -36,6 +36,11 @@ const CreateTaskModal = React.memo(
 		const [title, setTitle] = useState("");
 		const [description, setDescription] = useState("");
 		const [selectedMember, setSelectedMember] = useState(null);
+		
+
+		
+
+
 
 		const handleSubmit = () => {
 			if (!title.trim() || !description.trim()) {
@@ -46,14 +51,19 @@ const CreateTaskModal = React.memo(
 				});
 				return;
 			}
-			onSubmit({
-				titre: title,
-				description,
-				assignedToId: selectedMember?.id,
-			});
+			
+			
+			onSubmit(
+				{
+					titre: title,
+					description,
+					assignedToId: selectedMember?.id,
+				}
+				);
 			setTitle("");
 			setDescription("");
 			setSelectedMember(null);
+			
 		};
 
 		return (
@@ -93,6 +103,9 @@ const CreateTaskModal = React.memo(
 									numberOfLines={4}
 								/>
 							</View>
+							
+							
+							
 
 							<View style={styles.inputContainer}>
 								<Text style={styles.label}>Assigner à</Text>
@@ -127,6 +140,7 @@ const CreateTaskModal = React.memo(
 						</ScrollView>
 					</View>
 				</View>
+				
 			</Modal>
 		);
 	}
@@ -513,18 +527,18 @@ const ProjectDetailsScreen = () => {
 
 	const renderTask = useCallback(
 		({ item }) => {
-			console.log("Rendering task item 11111111111:", item);
+			//console.log("Rendering task item 11111111111:", item);
 			if (!item) {
-				console.log("Item is null or undefined");
+				//console.log("Item is null or undefined");
 				return null;
 			}
 			 // Get the members array for this project
 			 const members = projectMembers[project.id] || [];
-			 console.log("Project members:", members);
+			 //console.log("Project members:", members);
 			 
 			 // Find the assigned member
 			 const assignedMember = members.find(m => m.id === item.memberId);
-			 console.log("Assigned member:", assignedMember);
+			 //console.log("Assigned member:", assignedMember);
 			return (
 				<TaskItem
 					task={{
@@ -605,7 +619,7 @@ const ProjectDetailsScreen = () => {
 								<TouchableOpacity
 									style={styles.addTaskButton}
 									onPress={() => setAddTaskVisible(true)}>
-									<Icon name="plus" size={24} color={colors.primary} />
+									<Icon name="plus" size={24} color="#fff" />
 									<Text style={styles.addTaskText}>Ajouter une tâche</Text>
 								</TouchableOpacity>
 							)}
@@ -642,7 +656,7 @@ const ProjectDetailsScreen = () => {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#fff",
+		backgroundColor: "#eef2f3",
 	},
 	loadingContainer: {
 		flex: 1,
@@ -655,69 +669,52 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		padding: 20,
 		paddingTop: 60,
-		backgroundColor: colors.primary,
+		backgroundColor: "#4c669f",
+		borderBottomLeftRadius: 20,
+		borderBottomRightRadius: 20,
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 2,
+		},
+		shadowOpacity: 0.25,
+		shadowRadius: 3.84,
+		elevation: 5,
 	},
 	backButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.3)",
+		width: 42,
+		height: 42,
+		borderRadius: 21,
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.3)",
 	},
 	addButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "rgba(255, 255, 255, 0.3)",
+		width: 42,
+		height: 42,
+		borderRadius: 21,
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.3)",
 	},
 	title: {
-		fontSize: 20,
-		fontWeight: "bold",
+		fontSize: 32,
+		fontWeight: "900",
 		color: "#fff",
 		flex: 1,
 		textAlign: "center",
-		marginHorizontal: 10,
+		marginHorizontal: 15,
+		letterSpacing: 0.5,
 	},
 	descriptionContainer: {
+		margin: 20,
 		padding: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: "#eee",
-	},
-	descriptionTitle: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 10,
-	},
-	descriptionText: {
-		fontSize: 16,
-		color: "#666",
-		lineHeight: 24,
-	},
-	membersContainer: {
-		flex: 1,
-	},
-	membersTitle: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#333",
-		padding: 20,
-		paddingBottom: 10,
-	},
-	listContainer: {
-		padding: 15,
-		flexGrow: 1,
-	},
-	itemCard: {
-		flexDirection: "row",
-		alignItems: "center",
 		backgroundColor: "#fff",
-		padding: 15,
-		borderRadius: 10,
-		marginBottom: 10,
+		borderRadius: 16,
 		shadowColor: "#000",
 		shadowOffset: {
 			width: 0,
@@ -725,186 +722,103 @@ const styles = StyleSheet.create({
 		},
 		shadowOpacity: 0.1,
 		shadowRadius: 3.84,
-		elevation: 5,
+		elevation: 3,
 	},
-	itemInfo: {
-		flex: 1,
-	},
-	itemTitle: {
-		fontSize: 18,
-		fontWeight: "600",
+	descriptionTitle: {
+		fontSize: 20,
+		fontWeight: "700",
 		color: "#333",
-		marginBottom: 5,
+		marginBottom: 12,
+		letterSpacing: 0.5,
 	},
-	itemSubtitle: {
-		fontSize: 14,
-		color: "#666",
-		marginBottom: 10,
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingTop: 50,
-	},
-	emptyText: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 10,
-	},
-	emptySubText: {
-		fontSize: 14,
-		color: "#666",
-		marginBottom: 20,
-	},
-	emptyButton: {
-		width: "auto",
-		height: "auto",
-		paddingVertical: 12,
-		paddingHorizontal: 20,
-		backgroundColor: colors.primary,
-	},
-	buttonText: {
-		color: "#fff",
+	descriptionText: {
 		fontSize: 16,
-		fontWeight: "600",
+		color: "#666",
+		lineHeight: 24,
+		letterSpacing: 0.3,
 	},
-	ownerTag: {
-		fontSize: 12,
-		color: colors.primary,
-		fontWeight: "500",
-		marginTop: 5,
-	},
-	tasksContainer: {
-		flex: 1,
-		backgroundColor: "#f5f5f5",
+	membersLink: {
+		margin: 20,
+		marginTop: 0,
 		padding: 16,
+		backgroundColor: "#fff",
+		borderRadius: 16,
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 2,
+		},
+		shadowOpacity: 0.1,
+		shadowRadius: 3.84,
+		elevation: 3,
+	},
+	membersLinkContent: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	membersLinkText: {
+		fontSize: 18,
+		fontWeight: "600",
+		color: colors.primary,
+		letterSpacing: 0.3,
 	},
 	tasksHeader: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		backgroundColor: "#f5f5f5",
+		paddingHorizontal: 20,
+		marginTop: 10,
+		marginBottom: 15,
+		flexWrap: "wrap",
+		gap: 10,
 	},
 	tasksTitle: {
-		fontSize: 18,
-		fontWeight: "600",
+		fontSize: 24,
+		fontWeight: "700",
 		color: "#333",
+		letterSpacing: 0.5,
 	},
 	addTaskButton: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: colors.backgroundLight,
-		padding: 10,
-		borderRadius: 8,
+		backgroundColor: "#4c669f",
+		padding: 12,
+		borderRadius: 25,
+		paddingHorizontal: 20,
 	},
 	addTaskText: {
+		color: "#fff",
 		marginLeft: 8,
-		color: colors.primary,
+		fontSize: 16,
 		fontWeight: "600",
 	},
 	tasksList: {
-		paddingHorizontal: 16,
-		paddingBottom: 16,
-		backgroundColor: "#f5f5f5",
+		paddingHorizontal: 20,
+		paddingBottom: 20,
 	},
-	tasksContent: {
-		flex: 1,
-	},
-	modalContainer: {
-		flex: 1,
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-		justifyContent: "flex-end",
-	},
-	modalContent: {
+	emptyContainer: {
+		padding: 30,
+		alignItems: "center",
 		backgroundColor: "#fff",
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		padding: 20,
-		maxHeight: "80%",
+		margin: 20,
+		borderRadius: 16,
+		shadowColor: "#000",
+		shadowOffset: {
+			width: 0,
+			height: 2,
+		},
+		shadowOpacity: 0.1,
+		shadowRadius: 3.84,
+		elevation: 3,
 	},
-	modalHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginBottom: 20,
-	},
-	modalTitle: {
+	emptyText: {
 		fontSize: 20,
-		fontWeight: "bold",
-		color: "#333",
-	},
-	inputContainer: {
-		marginBottom: 20,
-	},
-	label: {
-		fontSize: 16,
 		fontWeight: "600",
 		color: "#333",
-		marginBottom: 8,
-	},
-	input: {
-		backgroundColor: "#f5f5f5",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 16,
-	},
-	textArea: {
-		height: 120,
-		textAlignVertical: "top",
-	},
-	membersList: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		marginTop: 8,
-	},
-	memberChip: {
-		backgroundColor: "#f5f5f5",
-		borderRadius: 20,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		marginRight: 8,
-		marginBottom: 8,
-	},
-	selectedMemberChip: {
-		backgroundColor: colors.primary,
-	},
-	memberChipText: {
-		color: "#333",
-		fontSize: 14,
-	},
-	selectedMemberChipText: {
-		color: "#fff",
-	},
-	submitButton: {
-		backgroundColor: colors.primary,
-		borderRadius: 8,
-		padding: 16,
-		alignItems: "center",
-		marginTop: 20,
-	},
-	submitButtonText: {
-		color: "#fff",
-		fontSize: 16,
-		fontWeight: "600",
-	},
-	membersLink: {
-		padding: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: "#eee",
-	},
-	membersLinkContent: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-	membersLinkText: {
-		fontSize: 16,
-		color: colors.primary,
-		fontWeight: "600",
+		marginTop: 15,
+		textAlign: "center",
+		letterSpacing: 0.3,
 	},
 });
 
