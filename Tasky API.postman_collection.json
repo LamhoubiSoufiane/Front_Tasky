@@ -1,11 +1,11 @@
 {
 	"info": {
-		"_postman_id": "b5c34f97-32c3-433a-b73d-e8a285af79f5",
+		"_postman_id": "584645c8-ba6f-479a-9ad1-bd91c6394683",
 		"name": "Tasky API",
 		"description": "API collection for Tasky application - Task Management System",
 		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
 		"_exporter_id": "33182524",
-		"_collection_link": "https://fd3333-7896.postman.co/workspace/351e70a9-627c-45ef-b74a-5c435b07b092/collection/33182524-b5c34f97-32c3-433a-b73d-e8a285af79f5?action=share&source=collection_link&creator=33182524"
+		"_collection_link": "https://fd3333-7896.postman.co/workspace/Tasky-Team~351e70a9-627c-45ef-b74a-5c435b07b092/collection/33182524-584645c8-ba6f-479a-9ad1-bd91c6394683?action=share&source=collection_link&creator=33182524"
 	},
 	"item": [
 		{
@@ -659,6 +659,45 @@
 							]
 						},
 						"description": "Assign a task to a team member"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Task",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": "{{base_url}}/tasks/1"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Task Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\":\"en cours\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/tasks/2/status"
 					},
 					"response": []
 				}

@@ -29,6 +29,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import AddTaskButton from "../Components/AddTaskButton";
 import AddTaskForm from "../Components/AddTaskForm";
 import TaskItem from "../Components/TaskItem";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 const CreateTaskModal = React.memo(
 	({ visible, onClose, onSubmit, members = [] }) => {
@@ -512,11 +513,18 @@ const ProjectDetailsScreen = () => {
 
 	const renderTask = useCallback(
 		({ item }) => {
-			console.log("Rendering task item:", item);
+			console.log("Rendering task item 11111111111:", item);
 			if (!item) {
 				console.log("Item is null or undefined");
 				return null;
 			}
+			 // Get the members array for this project
+			 const members = projectMembers[project.id] || [];
+			 console.log("Project members:", members);
+			 
+			 // Find the assigned member
+			 const assignedMember = members.find(m => m.id === item.memberId);
+			 console.log("Assigned member:", assignedMember);
 			return (
 				<TaskItem
 					task={{
@@ -526,7 +534,7 @@ const ProjectDetailsScreen = () => {
 						time: new Date(item.endDate).toLocaleDateString(),
 						status: item.statut?.toLowerCase() || "en_attente",
 						description: item.description,
-						assignedTo: item.member?.name || "Non assigné",
+						member: assignedMember || "Non assigné",
 					}}
 					onPress={() => handleTaskPress(item)}
 				/>
