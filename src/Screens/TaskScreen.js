@@ -7,18 +7,19 @@ import {
 	Text,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { colors } from "../assets/colors";
 import { loadInitialTasks } from "../Redux/actions/taskActions";
+import { loadTeamProjects } from "../Redux/actions/projectActions";
 
 // Lazy loaded components
 const TaskHeader = lazy(() => import("../Components/TaskHeader"));
 const TaskCalendar = lazy(() => import("../Components/TaskCalendar"));
 const TaskItem = lazy(() => import("../Components/TaskItem"));
+const TaskFilters = lazy(() => import("../Components/TaskFilters"));
 
 // Loading fallback component
 const LoadingFallback = () => (
 	<View style={styles.loadingContainer}>
-		<ActivityIndicator size="large" color={colors.primary} />
+		<ActivityIndicator size="large" color="#fff" />
 	</View>
 );
 
@@ -26,15 +27,39 @@ const TaskScreen = () => {
 	const dispatch = useDispatch();
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [activeFilter, setActiveFilter] = useState("all");
+	const [selectedProject, setSelectedProject] = useState(null);
+	const [selectedMember, setSelectedMember] = useState(null);
 
-	const { tasks, loading } = useSelector((state) => ({
-		tasks: state.task?.tasks || [],
-		loading: state.task?.loading || false,
-	}));
+	const { tasks, loading, projects, members, user } = useSelector((state) => {
+		console.log("Current Redux State:", state);
+		// Récupérer tous les projets de tous les teams
+		const allProjects = Object.values(state.project?.projects || {}).flat();
+		console.log("All Projects:", allProjects);
+		
+		return {
+			tasks: state.task?.tasks || [],
+			loading: state.task?.loading || false,
+			projects: allProjects,
+			members: state.project?.allMembers || [],
+			user: state.auth?.user
+		};
+	});
 
 	useEffect(() => {
-		dispatch(loadInitialTasks());
-	}, [dispatch]);
+		const loadData = async () => {
+			await dispatch(loadInitialTasks());
+			// Si l'utilisateur a une équipe active, charger ses projets
+			if (user?.activeTeam) {
+				await dispatch(loadTeamProjects(user.activeTeam));
+			}
+		};
+		loadData();
+	}, [dispatch, user?.activeTeam]);
+
+	useEffect(() => {
+		console.log("Projects:", projects);
+		console.log("Members:", members);
+	}, [projects, members]);
 
 	const filteredTasks = React.useMemo(() => {
 		return tasks.filter((task) => {
@@ -43,6 +68,16 @@ const TaskScreen = () => {
 				activeFilter !== "all" &&
 				task.statut?.toLowerCase() !== activeFilter
 			) {
+				return false;
+			}
+
+			// Filtrer par projet
+			if (selectedProject && task.projetId !== selectedProject.id) {
+				return false;
+			}
+
+			// Filtrer par membre
+			if (selectedMember && task.assignedToId !== selectedMember.id) {
 				return false;
 			}
 
@@ -55,7 +90,7 @@ const TaskScreen = () => {
 
 			return true;
 		});
-	}, [tasks, activeFilter, selectedDate]);
+	}, [tasks, activeFilter, selectedDate, selectedProject, selectedMember]);
 
 	const overallProgress = React.useMemo(() => {
 		const completedTasks = tasks.filter(
@@ -66,7 +101,22 @@ const TaskScreen = () => {
 			: 0;
 	}, [tasks]);
 
-	const user = useSelector((state) => state.auth.user);
+	// Fonction utilitaire pour trouver le projet et le membre en toute sécurité
+	const getTaskDetails = (task) => {
+		const project = projects.find(p => p.id === task.projetId);
+		const member = members.find(m => m.id === task.assignedToId);
+		
+		return {
+			id: task.id,
+			title: task.nom,
+			project: task.projetId,
+			time: new Date(task.endDate).toLocaleDateString(),
+			status: task.statut?.toLowerCase(),
+			description: task.description,
+			assignedTo: member?.username || 'Non assigné',
+			projectName: project?.nom || 'Projet inconnu'
+		};
+	};
 
 	if (loading) {
 		return <LoadingFallback />;
@@ -85,6 +135,19 @@ const TaskScreen = () => {
 				/>
 			</Suspense>
 
+			<Suspense fallback={<LoadingFallback />}>
+				<TaskFilters
+					activeFilter={activeFilter}
+					onFilterChange={setActiveFilter}
+					projects={projects}
+					selectedProject={selectedProject}
+					onProjectChange={setSelectedProject}
+					members={members}
+					selectedMember={selectedMember}
+					onMemberChange={setSelectedMember}
+				/>
+			</Suspense>
+
 			<View style={styles.tasksContainer}>
 				<Suspense fallback={<LoadingFallback />}>
 					<FlatList
@@ -92,14 +155,7 @@ const TaskScreen = () => {
 						renderItem={({ item: task }) => (
 							<TaskItem
 								key={task.id}
-								task={{
-									id: task.id,
-									title: task.nom,
-									project: task.projetId,
-									time: new Date(task.endDate).toLocaleDateString(),
-									status: task.statut?.toLowerCase(),
-									description: task.description,
-								}}
+								task={getTaskDetails(task)}
 							/>
 						)}
 						keyExtractor={(item) => item.id?.toString()}
@@ -127,6 +183,7 @@ const styles = StyleSheet.create({
 		padding: 20,
 		justifyContent: "center",
 		alignItems: "center",
+		backgroundColor: "#4c669f"
 	},
 	tasksContainer: {
 		flex: 1,
@@ -143,7 +200,7 @@ const styles = StyleSheet.create({
 	},
 	emptyText: {
 		fontSize: 16,
-		color: colors.textGray,
+		color: "#666",
 	},
 });
 
