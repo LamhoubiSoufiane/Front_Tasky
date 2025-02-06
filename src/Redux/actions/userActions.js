@@ -56,6 +56,7 @@ export const searchUsers = (query) => async (dispatch) => {
 };
 
 // Mettre à jour le profil utilisateur
+/*
 export const updateUserProfile = (userData) => async (dispatch) => {
 	try {
 		dispatch({ type: USER_LOADING });
@@ -96,30 +97,120 @@ export const updateUserProfile = (userData) => async (dispatch) => {
 		};
 	}
 };
-
+*/
 export const getUserProfile = () => async (dispatch) => {
-	try{
-		dispatch({ type: USER_LOADING});
+	try {
+		dispatch({ type: USER_LOADING });
 		const token = await AsyncStorage.getItem('access_token');
+		
 		if (!token) {
-			console.error("Token is missing or expired.");
-			return dispatch({ type: USER_ERROR, payload: "Token is missing or expired." });
-		  }
-		  const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.USERS.PROFILE}`, {
-			headers: { Authorization: `Bearer ${token}` },
-		  });
-		  
+			throw new Error("Token manquant ou expiré");
+		}
+
+		const response = await axios.get(
+			`${API_BASE_URL}${API_ENDPOINTS.USERS.PROFILE}`,
+			{
+				headers: { 
+					Authorization: `Bearer ${token}` 
+				}
+			}
+		);
+
+		console.log('Données du profil reçues:', response.data);
+		
+		// S'assurer que l'URL de l'image est complète
+		if (response.data && response.data.imageUrl && !response.data.imageUrl.startsWith('http')) {
+			response.data.imageUrl = `${API_BASE_URL}${response.data.imageUrl}`;
+		}
 
 		dispatch({
 			type: USER_SUCCESS,
-			payload: response.data,
+			payload: response.data
 		});
-	} catch(error){
-		console.error("Error fetching user info: ", error.response || error.message);
+	} catch (error) {
+		console.error("Erreur lors de la récupération du profil:", error);
 		dispatch({
 			type: USER_ERROR,
-			payload: error.response ? error.response.data.message : "Unknown error occurred",
-		  });
-		  
+			payload: error.message || "Erreur lors de la récupération du profil"
+		});
+	}
+};
+
+//-------------------------------------------
+export const updateUserProfile = (userData, image) => async (dispatch) => {
+	try {
+		dispatch({ type: USER_LOADING });
+		const token = await AsyncStorage.getItem('access_token');
+		
+		// Si une nouvelle image est fournie, l'uploader d'abord
+		if (image && image.uri) {
+			console.log('Préparation de l\'upload de l\'image:', image);
+			const imageFormData = new FormData();
+			imageFormData.append('file', {
+				uri: image.uri,
+				type: 'image/jpeg',
+				name: image.name
+			});
+
+			try {
+				const uploadResponse = await axios.post(
+					`${API_BASE_URL}/upload`,
+					imageFormData,
+					{
+						headers: {
+							'Authorization': `Bearer ${token}`,
+							'Content-Type': 'multipart/form-data',
+						}
+					}
+				);
+				
+				console.log('Réponse de l\'upload:', uploadResponse.data);
+				
+				if (uploadResponse.data && uploadResponse.data.imageUrl) {
+					// Mettre à jour l'URL de l'image dans les données utilisateur
+					userData.imageUrl = uploadResponse.data.imageUrl;
+					console.log('URL de l\'image mise à jour:', userData.imageUrl);
+				}
+			} catch (uploadError) {
+				console.error('Erreur lors de l\'upload de l\'image:', uploadError);
+				throw new Error('Erreur lors de l\'upload de l\'image');
+			}
+		}
+
+		// Mettre à jour le profil utilisateur
+		console.log('Mise à jour du profil avec les données:', userData);
+		const response = await axios.put(
+			`${API_BASE_URL}${API_ENDPOINTS.USERS.PROFILE}`,
+			userData,
+			{
+				headers: {
+					'Authorization': `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				}
+			}
+		);
+
+		console.log('Réponse de la mise à jour du profil:', response.data);
+
+		if (response.status === 200) {
+			dispatch({ 
+				type: USER_UPDATE, 
+				payload: response.data 
+			});
+			
+			// Recharger immédiatement le profil
+			await dispatch(getUserProfile());
+			
+			return { success: true, user: response.data };
+		} else {
+			throw new Error('Erreur lors de la mise à jour du profil');
+		}
+	} catch (error) {
+		console.error('Erreur de mise à jour:', error);
+		dispatch({
+			type: USER_ERROR,
+			payload: error.message || 'Erreur lors de la mise à jour du profil'
+		});
+		return { success: false, error: error.message };
 	}
 };

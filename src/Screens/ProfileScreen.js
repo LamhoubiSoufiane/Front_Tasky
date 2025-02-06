@@ -8,25 +8,90 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { useDispatch, useSelector } from "react-redux";
 import { getUserProfile } from "../Redux/actions/userActions";
+import { API_BASE_URL } from "../config";
 
 export default function ProfileScreen({ navigation }) {
   const dispatch = useDispatch();
   const user = useSelector(state => state.user.searchResults);
-  console.log("---------------------------------> ", user);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    console.log("Données utilisateur reçues:", user);
+    if (user && user.imageUrl) {
+      console.log("URL de l'image reçue:", user.imageUrl);
+    }
+  }, [user]);
+
   useEffect(() => {
     dispatch(getUserProfile());
-    console.log("Fetching user profile.............> ", user);
   }, [dispatch]);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setImageError(false);
+      dispatch(getUserProfile());
+    });
+
+    return unsubscribe;
+  }, [navigation, dispatch]);
+
+  const renderProfileImage = () => {
+    if (!user || !user.imageUrl) {
+      return (
+        <View style={[styles.profileImage, styles.defaultImageContainer]}>
+          <MaterialIcons name="person" size={60} color="#CCCCCC" />
+        </View>
+      );
+    }
+
+    try {
+      let imageUrl = user.imageUrl.replace('http://localhost:3000', API_BASE_URL);
+      console.log('URL de l\'image corrigée:', imageUrl);
+      
+      return (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.profileImage}
+          resizeMode="cover"
+          onLoadStart={() => {
+            console.log('Début du chargement de l\'image:', imageUrl);
+            setImageError(false);
+          }}
+          onError={(e) => {
+            console.error('Erreur de chargement de l\'image:', imageUrl);
+            setImageError(true);
+          }}
+        />
+      );
+    } catch (error) {
+      console.error("Erreur lors de l'affichage de l'image:", error);
+      return (
+        <View style={[styles.profileImage, styles.defaultImageContainer]}>
+          <MaterialIcons name="person" size={60} color="#CCCCCC" />
+        </View>
+      );
+    }
+  };
+
   if (user.loading) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3498db" />
+      </View>
+    );
   }
+
   if (user.error) {
-    return <Text>{user.error}</Text>;
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{user.error}</Text>
+      </View>
+    );
   }
 
   return (
@@ -36,7 +101,7 @@ export default function ProfileScreen({ navigation }) {
       {/* Background image */}
       <View style={styles.backgroundContainer}>
         <Image
-          source={require("../../assets/logo.jpeg")} // Assurez-vous que l'image est dans le bon dossier
+          source={require("../../assets/logo.jpeg")}
           resizeMode="cover"
           style={styles.backgroundImage}
         />
@@ -48,16 +113,21 @@ export default function ProfileScreen({ navigation }) {
         duration={1500}
         style={styles.profileContainer}
       >
-      <Image
-          source={user.profileImage ? { uri: user.profileImage } : require("../../assets/unknownProfile.jpg")}
-          resizeMode="contain"
-          style={styles.profileImage}
-      />
-
-
-        <Text style={styles.username}>{user.username}</Text>
-        <Text style={styles.fullName}>{user.nom} {user.prenom}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <View style={styles.imageContainer}>
+          {renderProfileImage()}
+          {!imageError && user?.imageUrl && (
+            <ActivityIndicator 
+              style={styles.imageLoader}
+              size="small" 
+              color="#3498db"
+            />
+          )}
+        </View>
+        <Text style={styles.username}>{user.username || 'Username'}</Text>
+        <Text style={styles.fullName}>
+          {user.nom && user.prenom ? `${user.nom} ${user.prenom}` : 'Nom complet'}
+        </Text>
+        <Text style={styles.email}>{user.email || 'Email'}</Text>
 
         <View style={styles.statsContainer}>
           <View style={styles.stat}>
@@ -115,13 +185,29 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: -10 },
   },
-  profileImage: {
+  imageContainer: {
+    position: 'relative',
     width: 120,
     height: 120,
+    marginBottom: 15,
     borderRadius: 60,
-    borderWidth: 4,
-    borderColor: "#FF6347",
-    marginBottom: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    backgroundColor: '#fff',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    backgroundColor: '#f0f0f0',
+  },
+  defaultImageContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
   },
   username: {
     fontSize: 24,
@@ -170,4 +256,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+    padding: 20
+  },
+  imageLoader: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -10 }, { translateY: -10 }],
+  }
 });

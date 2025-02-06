@@ -1,296 +1,346 @@
-import React,  {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import {
-	View,
-	StyleSheet,
-	Image,
-	Text,
-	TouchableOpacity,
-	SafeAreaView,
-	StatusBar,
-	TextInput,
-	Alert,
+  View,
+  StyleSheet,
+  Image,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  TextInput,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useDispatch, useSelector } from "react-redux";
 import { getUserProfile, updateUserProfile } from "../Redux/actions/userActions";
+import { API_BASE_URL } from "../config";
 
 export default function EditScreen({ navigation }) {
-	// State for form fields
-	const [firstName, setFirstName] = useState("");
-	const [lastName, setLastName] = useState("");
-	const [username, setUsername] = useState("");
-	const [email, setEmail] = useState("");
-	const [profileImage, setProfileImage] = useState(
-		require("../../assets/defaultProfileImage.jpg")
-	); // Default image
-	/*
-  // Function to handle image change
- const changeProfileImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
 
-    if (permissionResult.granted === false) {
-      Alert.alert("Permission Denied", "You need to allow access to your gallery to change the image.");
-      return;
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.searchResults);
+
+  useEffect(() => {
+    dispatch(getUserProfile());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (user && user.nom && user.prenom && user.username && user.email) {
+      setFirstName(user.nom);
+      setLastName(user.prenom);
+      setUsername(user.username);
+      setEmail(user.email);
+      if (user.imageUrl) {
+        const correctedImageUrl = user.imageUrl.replace('http://localhost:3000', API_BASE_URL);
+        console.log("Setting initial profile image:", correctedImageUrl);
+        setProfileImage({ 
+          uri: correctedImageUrl,
+          type: 'image/jpeg',
+          name: user.imageUrl.split('/').pop()
+        });
+      }
     }
+  }, [user]);
 
-    const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
+  const changeProfileImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (!pickerResult.canceled) {
-      setProfileImage({ uri: pickerResult.assets[0].uri });
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission refusée',
+          'Vous devez autoriser l\'accès à votre galerie pour modifier l\'image.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const selectedImage = result.assets[0];
+        console.log('Image sélectionnée:', selectedImage);
+        
+        const uniqueFileName = `${user.email.split('@')[0]}_${Date.now()}.jpg`;
+        console.log('Nom unique du fichier:', uniqueFileName);
+        
+        setProfileImage({
+          uri: selectedImage.uri,
+          type: 'image/jpeg',
+          name: uniqueFileName
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sélection de l\'image:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors du choix de l\'image.');
     }
   };
-*/
 
-	// Function to handle image change
-	const changeProfileImage = async () => {
-		// Request media library permission
-		const permissionResult =
-			await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const handleSaveChanges = async () => {
+    try {
+      const userData = {
+        nom: firstName,
+        prenom: lastName,
+        username,
+        email
+      };
 
-		// Check permission status
-		if (permissionResult.granted === false) {
-			Alert.alert(
-				"Permission Denied",
-				"You need to allow access to your gallery to change the image."
-			);
-			return;
-		}
+      console.log('Données du profil à mettre à jour:', userData);
+      console.log('Image à uploader:', profileImage);
 
-		// If permission is granted, show the current permission status
-		Alert.alert(
-			"Permission Granted",
-			"You have granted permission to access the gallery."
-		);
+      const result = await dispatch(updateUserProfile(userData, profileImage));
+      
+      if (result.success) {
+        Alert.alert('Succès', 'Votre profil a été mis à jour avec succès !');
+        navigation.navigate("Profile");
+      } else {
+        Alert.alert('Erreur', result.error || 'Une erreur est survenue lors de la mise à jour du profil');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      Alert.alert('Erreur', 'Une erreur est survenue lors de la mise à jour du profil');
+    }
+  };
 
-		// Launch image picker to allow the user to choose an image
-		const pickerResult = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.Images,
-			quality: 1,
-		});
+  const renderProfileImage = () => {
+    if (profileImage && profileImage.uri) {
+      console.log("Affichage de l'image:", profileImage.uri);
+      return (
+        <View style={styles.imageWrapper}>
+          <Image
+            source={{ uri: profileImage.uri }}
+            style={styles.profileImage}
+            resizeMode="cover"
+          />
+          <TouchableOpacity
+            style={styles.imageOverlay}
+            onPress={changeProfileImage}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="photo-camera" size={24} color="#fff" />
+            <Text style={styles.changePhotoOverlayText}>Changer</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
-		// Check if the user has selected an image
-		if (!pickerResult.canceled) {
-			// Update the profile image with the selected image
-			setProfileImage({ uri: pickerResult.assets[0].uri });
-		} else {
-			Alert.alert("Image Selection Cancelled", "You did not select an image.");
-		}
-	};
+    return (
+      <TouchableOpacity 
+        style={[styles.imageWrapper, styles.defaultImageContainer]}
+        onPress={changeProfileImage}
+      >
+        <View style={styles.addPhotoContainer}>
+          <MaterialIcons name="add-a-photo" size={40} color="#4c669f" />
+          <Text style={styles.addPhotoText}>Ajouter une photo</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
-	const dispatch = useDispatch();
-	const user = useSelector((state) => state.user.searchResults);
-
-	useEffect(() => {
-		dispatch(getUserProfile());
-	  }, [dispatch]);
-	
-	  useEffect(() => {
-		if (user && user.nom && user.prenom && user.username && user.email) {
-		  setFirstName(user.nom);
-		  setLastName(user.prenom);
-		  setUsername(user.username);
-		  setEmail(user.email);
-		  setProfileImage(user.profileImage ? { uri: user.profileImage } : require("../../assets/defaultProfileImage.jpg"));
-		}
-	  }, [user]);
-
-	if (user.loading) {
+  if (user.loading) {
     return <Text>Loading...</Text>;
   }
   if (user.error) {
     return <Text>{user.error}</Text>;
   }
 
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
 
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <MaterialIcons name="keyboard-arrow-left" size={32} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Modifier le profil</Text>
+      </View>
 
-  	const handleSaveChanges = async () => {
-		console.log("--------<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Valeurs actuelles :", {
-			firstName,
-			lastName,
-			username,
-			email
-		});
-		// Vérifiez si l'image a changé
-		let imageUrl = profileImage.uri ? await uploadImageAsync(profileImage.uri) : null;
+      {/* Profile Image Section */}
+      <View style={styles.profileContainer}>
+        <View style={styles.imageContainer}>
+          {renderProfileImage()}
+        </View>
+      </View>
 
-		const userData = {
-			nom: firstName,
-			prenom: lastName,
-			username,
-			email,
-			imageUrl,
-		};
-		console.log(' ************************************************ User data to update:', userData); // Vérifie ce que tu envoies
-		const result = await dispatch(updateUserProfile(userData));
-		
-		console.log('**************************************************Dispatch result:', result); // Vérifie la réponse du dispatch
+      {/* Form Section */}
+      <View style={styles.formContainer}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>First Name</Text>
+          <TextInput
+            style={styles.input}
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+        </View>
 
-		if (result.success) {
-			// Si la mise à jour a réussi, tu peux afficher une alerte ou rediriger l'utilisateur.
-			Alert.alert('Profile updated', 'Your profile has been successfully updated!');
-			// Optionnellement, tu peux naviguer vers un autre écran.
-			navigation.navigate("EditProfile"); // HomeScreen
-		  } else {
-			// Si la mise à jour échoue, tu peux afficher l'erreur.
-			Alert.alert('Error', result.error);
-		  }
-	};
-	
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Last Name</Text>
+          <TextInput
+            style={styles.input}
+            value={lastName}
+            onChangeText={setLastName}
+          />
+        </View>
 
-	return (
-		<SafeAreaView style={styles.safeArea}>
-			<StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+          />
+        </View>
 
-			{/* Header */}
-			<View style={styles.headerContainer}>
-				<TouchableOpacity
-					onPress={() => navigation.goBack()}
-					style={styles.backButton}>
-					<MaterialIcons name="keyboard-arrow-left" size={32} color="#000" />
-				</TouchableOpacity>
-				<Text style={styles.headerTitle}>Edit Profile</Text>
-			</View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
+        </View>
 
-			{/* Profile Image Section */}
-			<View style={styles.profileContainer}>
-				<Image source={profileImage} style={styles.profileImage} />
-				<TouchableOpacity
-					style={styles.cameraButton}
-					onPress={changeProfileImage}>
-					<MaterialIcons name="photo-camera" size={32} color="#fff" />
-				</TouchableOpacity>
-			</View>
-
-			{/* Form Section */}
-			<View style={styles.formContainer}>
-				{/* First Name */}
-				<View style={styles.inputGroup}>
-					<Text style={styles.label}>First Name</Text>
-					<TextInput
-						style={styles.input}
-						value={firstName}
-						onChangeText={setFirstName}
-					/>
-				</View>
-
-				{/* Last Name */}
-				<View style={styles.inputGroup}>
-					<Text style={styles.label}>Last Name</Text>
-					<TextInput
-						style={styles.input}
-						value={lastName}
-						onChangeText={setLastName}
-					/>
-				</View>
-
-				{/* Username */}
-				<View style={styles.inputGroup}>
-					<Text style={styles.label}>Username</Text>
-					<TextInput
-						style={styles.input}
-						value={username}
-						onChangeText={setUsername}
-					/>
-				</View>
-
-				{/* Email */}
-				<View style={styles.inputGroup}>
-					<Text style={styles.label}>Email</Text>
-					<TextInput
-						style={styles.input}
-						value={email}
-						onChangeText={setEmail}
-						keyboardType="email-address"
-					/>
-				</View>
-
-				{/* Save Button */}
-				<TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
-					<Text style={styles.saveButtonText}>Save Changes</Text>
-				</TouchableOpacity>
-			</View>
-		</SafeAreaView>
-	);
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
+          <Text style={styles.saveButtonText}>Save Changes</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-	safeArea: {
-		flex: 1,
-		backgroundColor: "#ffffff",
-		paddingHorizontal: 22,
-	},
-	headerContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginHorizontal: 12,
-		marginTop: 10,
-	},
-	backButton: {
-		position: "absolute",
-		left: 0,
-	},
-	headerTitle: {
-		flex: 1,
-		textAlign: "center",
-		fontSize: 20,
-		fontWeight: "bold",
-		color: "#333",
-	},
-	profileContainer: {
-		alignItems: "center",
-		marginTop: 30,
-	},
-	profileImage: {
-		height: 150,
-		width: 150,
-		borderRadius: 75,
-		borderWidth: 2,
-		borderColor: "#FF6347",
-	},
-	cameraButton: {
-		position: "absolute",
-		bottom: -1, // Updated to move closer vertically
-		right: 100, // Updated to move closer horizontally
-		backgroundColor: "#FF6347",
-		borderRadius: 20,
-		padding: 5,
-		elevation: 5,
-	},
-	formContainer: {
-		marginTop: 30,
-	},
-	inputGroup: {
-		marginBottom: 20,
-	},
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#333",
-		marginBottom: 8,
-	},
-	input: {
-		borderWidth: 1,
-		borderColor: "#ccc",
-		borderRadius: 8,
-		padding: 10,
-		fontSize: 16,
-		color: "#333",
-		backgroundColor: "#f9f9f9",
-	},
-	saveButton: {
-		backgroundColor: "#4c669f",
-		paddingVertical: 15,
-		borderRadius: 8,
-		alignItems: "center",
-		marginTop: 10,
-	},
-	saveButtonText: {
-		color: "#fff",
-		fontSize: 18,
-		fontWeight: "bold",
-	},
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 22,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 12,
+    marginTop: 10,
+  },
+  backButton: {
+    position: "absolute",
+    left: 0,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  profileContainer: {
+    alignItems: "center",
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: 150,
+    height: 150,
+    marginBottom: 10,
+    borderRadius: 75,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  imageWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 75,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 75,
+    backgroundColor: '#f0f0f0',
+  },
+  defaultImageContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#4c669f',
+    borderStyle: 'dashed',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  changePhotoOverlayText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  formContainer: {
+    marginTop: 30,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    color: "#333",
+    backgroundColor: "#f9f9f9",
+  },
+  saveButton: {
+    backgroundColor: "#4c669f",
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  addPhotoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPhotoText: {
+    color: '#4c669f',
+    fontSize: 14,
+    marginTop: 8,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
