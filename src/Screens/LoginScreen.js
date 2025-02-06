@@ -483,3 +483,5 @@ const styles = StyleSheet.create({
   },
 >>>>>>> a9158f9 (modification du style des pages)
 });
+
+export default LoginScreen;
