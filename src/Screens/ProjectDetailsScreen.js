@@ -20,7 +20,8 @@ import {
 import {
 	createTask,
 	assignTask,
-	loadProjectTasks,
+	fetchProjectTasks,
+	clearProjectTasks,
 } from "../Redux/actions/taskActions";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -156,26 +157,22 @@ const ProjectDetailsScreen = () => {
 	const { project } = route.params;
 	const user = useSelector((state) => state.auth.user);
 	const { projectMembers, loading } = useSelector((state) => state.project);
+	const { projectTasks, taskLoading } = useSelector((state) => ({
+		projectTasks: state.task.projectTasks,
+		taskLoading: state.task.loading
+	}));
 	const [isAddTaskVisible, setAddTaskVisible] = useState(false);
 	const [socket, setSocket] = useState(null);
 
-	// Correction de l'accès au state Redux avec plus de logs
-	const { projectTasks, taskLoading } = useSelector((state) => {
-		console.log("Current Redux State:", state);
-		console.log("Task State:", state.task);
-		console.log("Project Tasks:", state.task?.projectTasks);
-		return {
-			projectTasks: state.task?.projectTasks || [],
-			taskLoading: state.task?.loading || false,
-		};
-	});
-
 	useEffect(() => {
-		console.log(
-			"ProjectDetailsScreen - Loading tasks for project:",
-			project.id
-		);
+		console.log("Loading tasks for project:", project.id);
 		loadProjectData();
+
+		// Cleanup function
+		return () => {
+			console.log("Cleaning up project tasks");
+			dispatch(clearProjectTasks());
+		};
 	}, [project.id]);
 
 	useEffect(() => {
@@ -604,18 +601,14 @@ const ProjectDetailsScreen = () => {
 
 	const renderTask = useCallback(
 		({ item }) => {
-			//console.log("Rendering task item 11111111111:", item);
 			if (!item) {
-				//console.log("Item is null or undefined");
 				return null;
 			}
-			 // Get the members array for this project
-			 const members = projectMembers[project.id] || [];
-			 //console.log("Project members:", members);
-			 
-			 // Find the assigned member
-			 const assignedMember = members.find(m => m.id === item.memberId);
-			 //console.log("Assigned member:", assignedMember);
+			// Get the members array for this project
+			const members = projectMembers[project.id] || [];
+			// Find the assigned member
+			const assignedMember = members.find(m => m.id === item.memberId);
+			
 			return (
 				<TaskItem
 					task={{
@@ -624,20 +617,20 @@ const ProjectDetailsScreen = () => {
 						project: project.nom,
 						time: new Date(item.endDate).toLocaleDateString(),
 						status: item.statut?.toLowerCase() || "en_attente",
-						description: item.description,
-						member: assignedMember || "Non assigné",
+						assignedTo: assignedMember ? (assignedMember.username || assignedMember.name) : "Non assigné",
+						memberId: item.memberId
 					}}
-					onPress={() => handleTaskPress(item)}
+					projectMembers={members}
 				/>
 			);
 		},
-		[project.nom, handleTaskPress]
+		[project.nom, projectMembers]
 	);
 
 	const loadProjectData = async () => {
 		try {
 			console.log("Chargement des données du projet...");
-			const result = await dispatch(loadProjectTasks(project.id));
+			const result = await dispatch(fetchProjectTasks(project.id));
 			console.log("Résultat du chargement:", result);
 			if (!result.success) {
 				Toast.show({
@@ -705,7 +698,7 @@ const ProjectDetailsScreen = () => {
 				}
 				data={projectTasks}
 				renderItem={renderTask}
-				keyExtractor={(item) => item.id?.toString()}
+				keyExtractor={(item) => `project-task-${item.id}`}
 				contentContainerStyle={styles.tasksList}
 				refreshing={taskLoading}
 				onRefresh={loadProjectData}

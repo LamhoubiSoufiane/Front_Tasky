@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { io } from 'socket.io-client';
 import { API_BASE_URL } from '../config';
 import {
-  fetchUserTasks,
+  fetchMyTasks,
 } from "../Redux/actions/taskActions";
 import {
   selectTasks,

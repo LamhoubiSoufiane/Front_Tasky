@@ -15,35 +15,68 @@ import {
 	addTeamMember,
 } from "../Redux/actions/teamActions";
 import { loadTeamProjects } from "../Redux/actions/projectActions";
+import { fetchProjectTasks } from "../Redux/actions/taskActions";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-const ProjectCard = React.memo(({ project, onPress }) => (
-	<TouchableOpacity 
-		style={styles.projectCard}
-		onPress={() => onPress(project)}
-	>
-		<View style={styles.projectHeader}>
-			<Text style={styles.projectTitle}>{project.nom}</Text>
-			<Icon name="chevron-right" size={24} color={colors.primary} />
-		</View>
-		<Text style={styles.projectDescription} numberOfLines={2}>
-			{project.description}
-		</Text>
-		<View style={styles.projectFooter}>
-			<View style={styles.projectStats}>
-				<Icon name="account-group" size={20} color={colors.textGray} />
-				<Text style={styles.statsText}>{project.members?.length || 0} membres</Text>
+const ProjectCard = React.memo(({ project, onPress }) => {
+	const dispatch = useDispatch();
+	const [projectTasks, setProjectTasks] = useState([]);
+	const [isLoading, setIsLoading] = useState(true);
+
+	useEffect(() => {
+		const loadProjectTasks = async () => {
+			try {
+				setIsLoading(true);
+				const result = await dispatch(fetchProjectTasks(project.id));
+				if (result.success) {
+					setProjectTasks(result.data);
+				} else {
+					console.error("Erreur lors du chargement des tâches:", result.error);
+				}
+			} catch (error) {
+				console.error("Erreur lors du chargement des tâches:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		if (project?.id) {
+			loadProjectTasks();
+		}
+	}, [project?.id, dispatch]);
+
+	return (
+		<TouchableOpacity 
+			style={styles.projectCard}
+			onPress={() => onPress(project)}
+		>
+			<View style={styles.projectHeader}>
+				<Text style={styles.projectTitle}>{project.nom}</Text>
+				<Icon name="chevron-right" size={24} color={colors.primary} />
 			</View>
-			<View style={styles.projectStats}>
-				<Icon name="checkbox-marked" size={20} color={colors.textGray} />
-				<Text style={styles.statsText}>{project.tasks?.length || 0} tâches</Text>
+			<Text style={styles.projectDescription} numberOfLines={2}>
+				{project.description}
+			</Text>
+			<View style={styles.projectFooter}>
+				<View style={styles.projectStats}>
+					<Icon name="account-group" size={20} color={colors.textGray} />
+					<Text style={styles.statsText}>{project.members?.length || 0} membres</Text>
+				</View>
+				<View style={styles.projectStats}>
+					<Icon name="checkbox-marked" size={20} color={colors.textGray} />
+					{isLoading ? (
+						<ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 8 }} />
+					) : (
+						<Text style={styles.statsText}>{projectTasks.length || 0} tâches</Text>
+					)}
+				</View>
 			</View>
-		</View>
-	</TouchableOpacity>
-));
+		</TouchableOpacity>
+	);
+});
 
 const TeamDetailsScreen = () => {
 	const navigation = useNavigation();
