@@ -17,7 +17,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { loadProjectMembers } from "../Redux/actions/projectActions";
 import {
     assignTaskToMember,
-    loadProjectTasks,
+    fetchProjectTasks,
     updateTask,
     deleteTask,
     updateTaskStatus,
@@ -93,7 +93,22 @@ const TaskDetailsScreen = () => {
 
     const reloadTaskData = async () => {
         if (task?.projetId) {
-            await dispatch(loadProjectTasks(task.projetId));
+            try {
+                console.log("Recharging task data for project:", task.projetId);
+                const result = await dispatch(fetchProjectTasks(task.projetId));
+                if (!result.success) {
+                    console.error("Failed to reload tasks:", result.error);
+                    Toast.show({
+                        type: "error",
+                        text1: "Erreur",
+                        text2: "Impossible de recharger les tâches",
+                        position: "top",
+                        visibilityTime: 3000,
+                    });
+                }
+            } catch (error) {
+                console.error("Error reloading tasks:", error);
+            }
         }
     };
 
@@ -183,7 +198,9 @@ const TaskDetailsScreen = () => {
 
     const handleAssignTask = async (memberId) => {
         try {
+            console.log("Assigning task", taskId, "to member", memberId);
             const result = await dispatch(assignTaskToMember(taskId, memberId));
+            
             if (result.success) {
                 Toast.show({
                     type: "success",
@@ -193,8 +210,11 @@ const TaskDetailsScreen = () => {
                     visibilityTime: 3000,
                 });
                 setIsAssignModalVisible(false);
+                
+                // Recharger les données après l'assignation
                 await reloadTaskData();
             } else {
+                console.error("Assignment failed:", result.error);
                 Toast.show({
                     type: "error",
                     text1: "Erreur",
@@ -208,7 +228,7 @@ const TaskDetailsScreen = () => {
             Toast.show({
                 type: "error",
                 text1: "Erreur",
-                text2: "Impossible d'assigner la tâche",
+                text2: "Une erreur est survenue lors de l'assignation",
                 position: "top",
                 visibilityTime: 3000,
             });

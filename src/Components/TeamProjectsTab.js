@@ -1,13 +1,25 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, FlatList } from "react-native";
 import { colors } from "../assets/colors";
 
-const TeamProjectsTab = () => {
+const TeamProjectsTab = ({ projects = [] }) => {
 	return (
 		<View style={styles.container}>
-			<Text style={styles.text}>
-				Section des projets en cours de développement
-			</Text>
+			{projects.length === 0 ? (
+				<Text style={styles.text}>
+					Section des projets en cours de développement
+				</Text>
+			) : (
+				<FlatList
+					data={projects}
+					keyExtractor={(item) => `team-project-${item.id}`}
+					renderItem={({ item }) => (
+						<View style={styles.projectItem}>
+							<Text style={styles.projectName}>{item.nom}</Text>
+						</View>
+					)}
+				/>
+			)}
 		</View>
 	);
 };
@@ -25,6 +37,16 @@ const styles = StyleSheet.create({
 		color: colors.primary,
 		textAlign: "center",
 	},
+	projectItem: {
+		padding: 15,
+		borderBottomWidth: 1,
+		borderBottomColor: colors.lightGray,
+		width: "100%",
+	},
+	projectName: {
+		fontSize: 16,
+		color: colors.primary,
+	}
 });
 
 export default TeamProjectsTab;

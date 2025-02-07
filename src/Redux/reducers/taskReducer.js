@@ -14,11 +14,16 @@ const initialState = {
     loading: false,
     error: null,
     userLocation: null,
+    cache: {
+        timestamp: null,
+        data: null
+    }
 };
 
 export default function taskReducer(state = initialState, action) {
     switch (action.type) {
         case TASK_TYPES.TASKS_FETCH_START:
+            console.log('Reducer: Starting fetch...');
             return {
                 ...state,
                 loading: true,
@@ -41,16 +46,40 @@ export default function taskReducer(state = initialState, action) {
                 loading: false,
                 tasks: formattedTasks,
                 error: null
+                cache: {
+                    timestamp: Date.now(),
+                    data: action.payload
+                }
             };
 
         case TASK_TYPES.TASKS_FETCH_FAILURE:
+            console.log('Reducer: Fetch failed with error:', action.payload);
             return {
                 ...state,
                 loading: false,
+            };
+
+        case TASK_TYPES.SET_PROJECT_TASKS:
+            console.log('Reducer: Setting project tasks:', action.payload);
+            return {
+                ...state,
+                projectTasks: Array.isArray(action.payload) ? action.payload : [],
+                loading: false,
+                error: null,
                 error: action.payload
             };
 
+        case TASK_TYPES.CLEAR_PROJECT_TASKS:
+            console.log('Reducer: Clearing project tasks');
+            return {
+                ...state,
+                projectTasks: [],
+                loading: false,
+                error: null,
+            };
+
         case TASK_TYPES.CREATE_TASK:
+            console.log('Reducer: Creating new task:', action.payload);
             console.log('Nouvelle tâche créée:', action.payload);
             const newTask = {
                 ...action.payload,

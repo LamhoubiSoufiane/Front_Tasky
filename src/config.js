@@ -1,6 +1,5 @@
 // API Configuration
-export const API_BASE_URL = "http://192.168.1.21:3000";
-export const API_WS_URL = API_BASE_URL.replace('http://', 'ws://') + "/websockets";
+export const API_BASE_URL = "http://192.168.1.8:3000";
 export const API_ENDPOINTS = {
 	AUTH: {
 		LOGIN: "/auth/login",
