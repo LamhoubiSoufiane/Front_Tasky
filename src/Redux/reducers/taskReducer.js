@@ -16,29 +16,88 @@ const initialState = {
     userLocation: null,
 };
 
-const taskReducer = (state = initialState, action) => {
+export default function taskReducer(state = initialState, action) {
     switch (action.type) {
         case TASK_TYPES.TASKS_FETCH_START:
             return {
                 ...state,
                 loading: true,
-                error: null,
+                error: null
             };
 
         case TASK_TYPES.TASKS_FETCH_SUCCESS:
-            console.log('Reducer: Updating tasks with:', action.payload);
+            console.log('Tâches reçues dans le reducer:', action.payload);
+            const formattedTasks = Array.isArray(action.payload) ? action.payload.map(task => ({
+                ...task,
+                location: task.location ? {
+                    ...task.location,
+                    latitude: String(task.location.latitude),
+                    longitude: String(task.location.longitude)
+                } : null
+            })) : [];
+            console.log('Tâches formatées:', formattedTasks);
             return {
                 ...state,
-                tasks: action.payload,
                 loading: false,
-                error: null,
+                tasks: formattedTasks,
+                error: null
             };
 
         case TASK_TYPES.TASKS_FETCH_FAILURE:
             return {
                 ...state,
-                error: action.payload,
                 loading: false,
+                error: action.payload
+            };
+
+        case TASK_TYPES.CREATE_TASK:
+            console.log('Nouvelle tâche créée:', action.payload);
+            const newTask = {
+                ...action.payload,
+                location: action.payload.location ? {
+                    ...action.payload.location,
+                    latitude: String(action.payload.location.latitude),
+                    longitude: String(action.payload.location.longitude)
+                } : null
+            };
+            return {
+                ...state,
+                tasks: [...state.tasks, newTask],
+                projectTasks: [...state.projectTasks, newTask],
+                loading: false,
+                error: null,
+            };
+
+        case TASK_TYPES.UPDATE_TASK:
+            console.log('Tâche mise à jour:', action.payload);
+            const updatedTask = {
+                ...action.payload,
+                location: action.payload.location ? {
+                    ...action.payload.location,
+                    latitude: String(action.payload.location.latitude),
+                    longitude: String(action.payload.location.longitude)
+                } : null
+            };
+            return {
+                ...state,
+                tasks: state.tasks.map(task =>
+                    task.id === action.payload.id ? updatedTask : task
+                ),
+                projectTasks: state.projectTasks.map(task =>
+                    task.id === action.payload.id ? updatedTask : task
+                ),
+                loading: false,
+                error: null,
+            };
+
+        case TASK_TYPES.DELETE_TASK:
+            console.log('Tâche supprimée:', action.payload);
+            return {
+                ...state,
+                tasks: state.tasks.filter(task => task.id !== action.payload),
+                projectTasks: state.projectTasks.filter(task => task.id !== action.payload),
+                loading: false,
+                error: null,
             };
 
         case TASK_TYPES.SET_PROJECT_TASKS:
@@ -46,37 +105,6 @@ const taskReducer = (state = initialState, action) => {
             return {
                 ...state,
                 projectTasks: Array.isArray(action.payload) ? action.payload : [],
-                loading: false,
-                error: null,
-            };
-
-        case TASK_TYPES.CREATE_TASK:
-            return {
-                ...state,
-                tasks: [...state.tasks, action.payload],
-                projectTasks: [...state.projectTasks, action.payload],
-                loading: false,
-                error: null,
-            };
-
-        case TASK_TYPES.UPDATE_TASK:
-            return {
-                ...state,
-                tasks: state.tasks.map(task =>
-                    task.id === action.payload.id ? action.payload : task
-                ),
-                projectTasks: state.projectTasks.map(task =>
-                    task.id === action.payload.id ? action.payload : task
-                ),
-                loading: false,
-                error: null,
-            };
-
-        case TASK_TYPES.DELETE_TASK:
-            return {
-                ...state,
-                tasks: state.tasks.filter(task => task.id !== action.payload),
-                projectTasks: state.projectTasks.filter(task => task.id !== action.payload),
                 loading: false,
                 error: null,
             };
@@ -91,5 +119,3 @@ const taskReducer = (state = initialState, action) => {
             return state;
     }
 };
-
-export default taskReducer;
