@@ -1,47 +1,61 @@
-import React, { memo, useState } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
-import { assignTaskToMember } from "../Redux/actions/taskActions";
+import { assignTaskToMember, notifyTaskStatusUpdated, notifyTaskAssigned, updateTaskStatus } from "../Redux/actions/taskActions";
 import Toast from "react-native-toast-message";
+import io from 'socket.io-client';
+import { API_BASE_URL } from '../config';
 
-const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) => {
+const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMembers = [] }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
     const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
-    
-    console.log("Task in TaskItem:", task);
-    console.log("Project Members in TaskItem:", projectMembers);
+    const [task, setTask] = useState(initialTask);
 
-    const getStatusStyle = (status) => {
-        if (!status) return styles.statusTodo;
-        switch (status.toLowerCase()) {
-            case "termine":
-                return styles.statusDone;
-            case "en_cours":
-                return styles.statusInProgress;
-            case "a_faire":
-                return styles.statusTodo;
-            default:
-                return styles.statusTodo;
-        }
-    };
+    useEffect(() => {
+        setTask(initialTask);
+    }, [initialTask]);
 
-    const getStatusText = (status) => {
-        if (!status) return "À FAIRE";
-        switch (status.toLowerCase()) {
-            case "termine":
-                return "TERMINÉ";
-            case "en_cours":
-                return "EN COURS";
-            case "a_faire":
-                return "À FAIRE";
-            default:
-                return "À FAIRE";
-        }
-    };
+    useEffect(() => {
+        socket = io(API_BASE_URL, {
+            path: '/websockets',
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 3000,
+        });
+
+        socket.on('taskStatusUpdated', (data) => {
+            if (data.data.taskId === task.id) {
+                setTask(prevTask => ({
+                    ...prevTask,
+                    statut: data.data.status
+                }));
+            }
+        });
+
+        socket.on('taskAssigned', (data) => {
+            if (data.data.taskId === task.id) {
+                const assignedMember = projectMembers.find(member => member.id === data.data.newAssignee);
+                setTask(prevTask => ({
+                    ...prevTask,
+                    assignedTo: data.data.newAssignee,
+                    member: assignedMember ? {
+                        id: assignedMember.id,
+                        username: assignedMember.username || assignedMember.name,
+                        name: assignedMember.name || assignedMember.username
+                    } : null
+                }));
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [task.id, projectMembers]);
 
     const handleEdit = () => {
         navigation.navigate("TaskDetails", { 
@@ -50,17 +64,20 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
         });
     };
 
-    const handleAssign = () => {
-        setIsAssignModalVisible(true);
-    };
-
-    const handleAssignTask = async (memberId) => {
+    const handleAssign = async (memberId) => {
         try {
-            console.log('Assigning task:', task.id, 'to member:', memberId);
-            console.log('Available project members:', projectMembers);
-            
             const result = await dispatch(assignTaskToMember(task.id, memberId));
             if (result.success) {
+                const assignedMember = projectMembers.find(member => member.id === memberId);
+                setTask(prevTask => ({
+                    ...prevTask,
+                    assignedTo: memberId,
+                    member: {
+                        id: memberId,
+                        username: assignedMember?.username || assignedMember?.name,
+                        name: assignedMember?.name || assignedMember?.username
+                    }
+                }));
                 Toast.show({
                     type: "success",
                     text1: "Succès",
@@ -73,7 +90,7 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
                 Toast.show({
                     type: "error",
                     text1: "Erreur",
-                    text2: result.error || "Impossible d'assigner la tâche",
+                    text2: "Impossible d'assigner la tâche",
                     position: "top",
                     visibilityTime: 3000,
                 });
@@ -90,12 +107,109 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
         }
     };
 
+    const handleStatusChange = async () => {
+        try {
+            const currentStatus = task.statut || task.status;
+            let newStatus;
+            switch (currentStatus.toLowerCase()) {
+                case "a faire":
+                    newStatus = "en cours";
+                    break;
+                case "en cours":
+                    newStatus = "terminee";
+                    break;
+                case "terminee":
+                    newStatus = "annulee";
+                    break;
+                case "annulee":
+                    newStatus = "a faire";
+                    break;
+                default:
+                    newStatus = "a faire";
+            }
+
+            console.log('Envoi de la mise à jour du statut:', { taskId: task.id, newStatus });
+            const result = await dispatch(updateTaskStatus(task.id, newStatus));
+            
+            if (result.success) {
+                console.log('Mise à jour du statut réussie:', result.data);
+                // Mettre à jour l'état local avec les nouvelles données
+                setTask(prevTask => ({
+                    ...prevTask,
+                    ...result.data,
+                    statut: result.data.statut || result.data.status || newStatus
+                }));
+
+                Toast.show({
+                    type: "success",
+                    text1: "Succès",
+                    text2: "Statut de la tâche mis à jour avec succès",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+            } else {
+                console.error('Échec de la mise à jour du statut:', result.error);
+                Toast.show({
+                    type: "error",
+                    text1: "Erreur",
+                    text2: result.error || "Impossible de mettre à jour le statut",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+            }
+        } catch (error) {
+            console.error("Erreur lors de la mise à jour du statut:", error);
+            Toast.show({
+                type: "error",
+                text1: "Erreur",
+                text2: "Impossible de mettre à jour le statut de la tâche",
+                position: "top",
+                visibilityTime: 3000,
+            });
+        }
+    };
+
     const getMemberName = () => {
-        // Si nous avons un membre avec un nom
-        if (task.member?.username) {
-            return task.member.username;
+        if (task.member) {
+            return task.member.username || task.member.name || 'Non assigné';
+        }
+        if (task.assignedTo) {
+            const assignedMember = projectMembers.find(member => member.id === task.assignedTo);
+            return assignedMember ? (assignedMember.username || assignedMember.name) : 'Non assigné';
         }
         return "Non assigné";
+    };
+
+    const getStatusStyle = (status) => {
+        if (!status) return styles.statusTodo;
+        switch (status.toLowerCase()) {
+            case "terminee":
+                return styles.statusDone;
+            case "en cours":
+                return styles.statusInProgress;
+            case "a faire":
+                return styles.statusTodo;
+            case "annulee": 
+            return { backgroundColor: '#FF0000' }; 
+            default:
+                return styles.statusTodo;
+        }
+    };
+
+    const getStatusText = (status) => {
+        if (!status) return "À FAIRE";
+        switch (status.toLowerCase()) {
+            case "terminee":
+                return "TERMINÉ";
+            case "en cours":
+                return "EN COURS";
+            case "a faire":
+                return "À FAIRE";
+            case "annulee": 
+                return "ANNULEE"; 
+            default:
+                return "À FAIRE";
+        }
     };
 
     return (
@@ -112,7 +226,7 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
                     <View style={styles.infoRow}>
                         <View style={styles.assignSection}>
                             <TouchableOpacity 
-                                onPress={handleAssign}
+                                onPress={() => setIsAssignModalVisible(true)}
                                 style={styles.assignButton}
                             >
                                 <Icon name="person-add" size={20} color={colors.primary} />
@@ -123,7 +237,7 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
                         </View>
                         <TouchableOpacity 
                             style={[styles.status, getStatusStyle(task.statut || task.status)]}
-                            onPress={onStatusChange}
+                            onPress={handleStatusChange}
                         >
                             <Text style={styles.statusText}>
                                 {getStatusText(task.statut || task.status)}
@@ -157,7 +271,7 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
                                     <TouchableOpacity
                                         key={member.id}
                                         style={styles.memberItem}
-                                        onPress={() => handleAssignTask(member.id)}>
+                                        onPress={() => handleAssign(member.id)}>
                                         <Text style={styles.memberName}>
                                             {member.name || member.username}
                                         </Text>

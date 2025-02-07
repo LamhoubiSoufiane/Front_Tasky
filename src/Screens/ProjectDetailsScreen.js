@@ -30,6 +30,8 @@ import AddTaskButton from "../Components/AddTaskButton";
 import AddTaskForm from "../Components/AddTaskForm";
 import TaskItem from "../Components/TaskItem";
 import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+import { API_WS_URL, API_BASE_URL } from '../config';
+import { io } from 'socket.io-client';
 
 const CreateTaskModal = React.memo(
 	({ visible, onClose, onSubmit, members = [] }) => {
@@ -155,6 +157,7 @@ const ProjectDetailsScreen = () => {
 	const user = useSelector((state) => state.auth.user);
 	const { projectMembers, loading } = useSelector((state) => state.project);
 	const [isAddTaskVisible, setAddTaskVisible] = useState(false);
+	const [socket, setSocket] = useState(null);
 
 	// Correction de l'accès au state Redux avec plus de logs
 	const { projectTasks, taskLoading } = useSelector((state) => {
@@ -225,6 +228,80 @@ const ProjectDetailsScreen = () => {
 
 		loadMembers();
 	}, [dispatch, project?.id]);
+
+	useEffect(() => {
+		let socket = null;
+		let isComponentMounted = true;
+
+		const connectSocket = () => {
+			console.log('Connexion socket.io:', API_WS_URL);
+			
+			socket = io(API_BASE_URL, {
+				path: '/websockets',
+				transports: ['websocket'],
+				reconnection: true,
+				reconnectionAttempts: 5,
+				reconnectionDelay: 3000,
+			});
+
+			socket.on('connect', () => {
+				console.log('Socket.io connecté avec succès');
+				// Envoyer l'ID du projet pour s'abonner aux mises à jour
+				socket.emit('joinProject', { projectId: project.id });
+			});
+
+			socket.on('joinedProject', (response) => {
+				console.log('Confirmation joinProject reçue:', response);
+			});
+
+			socket.on('taskCreated', (message) => {
+				console.log('Nouvelle tâche reçue:', message);
+				dispatch(loadProjectTasks(project.id));
+			});
+
+			socket.on('taskUpdated', (message) => {
+				console.log('Mise à jour tâche reçue:', message);
+				dispatch(loadProjectTasks(project.id));
+			});
+
+			socket.on('taskStatusUpdated', (message) => {
+				console.log('Mise à jour du statut reçue:', message);
+				dispatch(loadProjectTasks(project.id));
+			});
+
+			socket.on('taskAssigned', (message) => {
+				console.log('Assignation de tâche reçue:', message);
+				dispatch(loadProjectTasks(project.id));
+			});
+
+			socket.on('taskDeleted', (message) => {
+				console.log('Suppression tâche reçue:', message);
+				dispatch(loadProjectTasks(project.id));
+			});
+
+			socket.on('connect_error', (error) => {
+				console.error('Erreur de connexion socket.io:', error);
+			});
+
+			socket.on('disconnect', (reason) => {
+				console.log('Socket.io déconnecté, raison:', reason);
+			});
+
+			return socket;
+		};
+
+		// Première connexion
+		socket = connectSocket();
+
+		// Nettoyage à la déconnexion
+		return () => {
+			isComponentMounted = false;
+			if (socket) {
+				console.log('Fermeture propre du socket');
+				socket.disconnect();
+			}
+		};
+	}, [project.id, dispatch]);
 
 	const currentMembers = useMemo(() => {
 		if (!project?.id) return [];

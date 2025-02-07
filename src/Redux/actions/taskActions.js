@@ -288,18 +288,32 @@ export const deleteTask = (taskId) => async (dispatch) => {
 export const updateTaskStatus = (taskId, status) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
+    console.log('Mise à jour du statut:', { taskId, status });
     const response = await api.put(API_ENDPOINTS.TASKS.STATUS(taskId), {
-      statut: status,
+      status: status // Assurez-vous que le backend attend "status" comme clé
     });
-    dispatch({
-      type: TASK_TYPES.UPDATE_TASK,
-      payload: response.data,
-    });
-    return { success: true, data: response.data };
+
+    console.log('Réponse de la mise à jour du statut:', response.data);
+
+    if (response.data) {
+      // Mettre à jour le state avec la nouvelle tâche
+      dispatch({
+        type: TASK_TYPES.UPDATE_TASK,
+        payload: response.data
+      });
+
+      // Recharger les tâches du projet pour s'assurer de la synchronisation
+      if (response.data.projectId || response.data.projetId) {
+        await dispatch(loadProjectTasks(response.data.projectId || response.data.projetId));
+      }
+
+      return { success: true, data: response.data };
+    }
+
+    return { success: false, error: 'Pas de données reçues du serveur' };
   } catch (error) {
-    console.error("Error updating task status:", error.response?.data);
-    const errorMessage =
-      error.response?.data?.message || ERROR_MESSAGES.TASK.UPDATE_ERROR;
+    console.error("Erreur lors de la mise à jour du statut:", error.response?.data || error);
+    const errorMessage = error.response?.data?.message || ERROR_MESSAGES.TASK.UPDATE_ERROR;
     dispatch(setError(errorMessage));
     return { success: false, error: errorMessage };
   } finally {
@@ -307,9 +321,9 @@ export const updateTaskStatus = (taskId, status) => async (dispatch) => {
   }
 };
 
-export const fetchUserTasks = ({ token, userId }) => async (dispatch, getState) => {
+export const fetchUserTasks = ({ token, userId }) => async (dispatch) => {
   try {
-    console.log('Fetching tasks for user:', userId); // Debug
+    console.log('Début du chargement des tâches pour l\'utilisateur:', userId);
     dispatch({ type: TASK_TYPES.TASKS_FETCH_START });
     
     const response = await api.get(`/tasks/tasksByUserId/${userId}`, {
@@ -318,23 +332,25 @@ export const fetchUserTasks = ({ token, userId }) => async (dispatch, getState) 
       }
     });
 
-    console.log('Tasks received:', response.data); // Debug
+    console.log('Tâches reçues:', response.data);
 
     if (Array.isArray(response.data)) {
       dispatch({
         type: TASK_TYPES.TASKS_FETCH_SUCCESS,
         payload: response.data
       });
+      return { success: true };
     } else {
-      console.error('Invalid response format:', response.data);
+      console.error('Format de réponse invalide:', response.data);
       dispatch({
         type: TASK_TYPES.TASKS_FETCH_FAILURE,
         payload: 'Format de réponse invalide'
       });
+      return { success: false, error: 'Format de réponse invalide' };
     }
 
   } catch (error) {
-    console.error('Error fetching tasks:', error.response || error); // Debug
+    console.error('Erreur lors du chargement des tâches:', error.response || error);
     const errorMessage = error.response?.status === 401 
       ? 'Session expirée, veuillez vous reconnecter'
       : error.response?.data?.message || error.message;
@@ -342,6 +358,7 @@ export const fetchUserTasks = ({ token, userId }) => async (dispatch, getState) 
       type: TASK_TYPES.TASKS_FETCH_FAILURE,
       payload: errorMessage
     });
+    return { success: false, error: errorMessage };
   }
 };
 
