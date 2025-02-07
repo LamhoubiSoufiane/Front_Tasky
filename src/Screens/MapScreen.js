@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import {
-  fetchUserTasks,
+  fetchMyTasks,
 } from "../Redux/actions/taskActions";
 import {
   selectTasks,
@@ -81,13 +81,8 @@ const MapScreen = () => {
         longitudeDelta: 0.0421
       });
 
-      console.log('Fetching tasks with:', { userId: user.id, token: authToken ? 'exists' : 'missing' });
-
       // Récupération des tâches depuis Redux
-      dispatch(fetchUserTasks({ 
-        token: authToken, 
-        userId: user.id 
-      }));
+      dispatch(fetchMyTasks());
 
     } catch (error) {
       console.error('Error in fetchInitialData:', error);
@@ -105,7 +100,7 @@ const MapScreen = () => {
   // Effet pour recharger les tâches quand l'authentification change
   useEffect(() => {
     if (isAuthenticated && user?.id && authToken) {
-      dispatch(fetchUserTasks({ token: authToken, userId: user.id }));
+      dispatch(fetchMyTasks());
     }
   }, [isAuthenticated, user?.id, authToken]);
 

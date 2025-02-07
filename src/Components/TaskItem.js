@@ -1,53 +1,54 @@
 import React, { memo, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput } from "react-native";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { assignTaskToMember } from "../Redux/actions/taskActions";
 import Toast from "react-native-toast-message";
+import { createHelpRequest } from "../Redux/actions/helpRequestActions";
 
 const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
+    const currentUser = useSelector(state => state.auth.user);
     const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
+    const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
+    const [helpDescription, setHelpDescription] = useState("");
     
     console.log("Task in TaskItem:", task);
     console.log("Project Members in TaskItem:", projectMembers);
 
     const getStatusStyle = (status) => {
-        if (!status) return styles.statusTodo;
-        switch (status.toLowerCase()) {
+        switch (status?.toLowerCase()) {
             case "termine":
                 return styles.statusDone;
             case "en_cours":
+            case "en cours":
                 return styles.statusInProgress;
             case "a_faire":
-                return styles.statusTodo;
+            case "a faire":
             default:
                 return styles.statusTodo;
         }
     };
 
     const getStatusText = (status) => {
-        if (!status) return "À FAIRE";
-        switch (status.toLowerCase()) {
+        switch (status?.toLowerCase()) {
             case "termine":
                 return "TERMINÉ";
             case "en_cours":
+            case "en cours":
                 return "EN COURS";
             case "a_faire":
-                return "À FAIRE";
+            case "a faire":
             default:
                 return "À FAIRE";
         }
     };
 
-    const handleEdit = () => {
-        navigation.navigate("TaskDetails", { 
-            taskId: task.id,
-            isEditMode: true 
-        });
+    const handleTaskPress = () => {
+        navigation.navigate("TaskDetails", { taskId: task.id });
     };
 
     const handleAssign = () => {
@@ -98,48 +99,123 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
         return "Non assigné";
     };
 
+    const handleRequestHelp = async () => {
+        try {
+            // Vérifier si la tâche est assignée à l'utilisateur actuel
+            if (!task.member || task.member.id !== currentUser?.id) {
+                Toast.show({
+                    type: "error",
+                    text1: "Erreur",
+                    text2: "Vous ne pouvez demander de l'aide que pour les tâches qui vous sont assignées",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+                return;
+            }
+
+            const result = await dispatch(createHelpRequest(task.id));
+            if (result.success) {
+                Toast.show({
+                    type: "success",
+                    text1: "Succès",
+                    text2: "Demande d'aide créée avec succès",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+            } else {
+                Toast.show({
+                    type: "error",
+                    text1: "Erreur",
+                    text2: result.error || "Impossible de créer la demande d'aide",
+                    position: "top",
+                    visibilityTime: 3000,
+                });
+            }
+        } catch (error) {
+            console.error("Erreur lors de la création de la demande d'aide:", error);
+            Toast.show({
+                type: "error",
+                text1: "Erreur",
+                text2: "Une erreur est survenue",
+                position: "top",
+                visibilityTime: 3000,
+            });
+        }
+    };
+
+    const actions = (
+        <View style={styles.actions}>
+            <TouchableOpacity 
+                onPress={handleAssign}
+                style={styles.iconButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+                <Icon name="person-add" size={22} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+                onPress={handleTaskPress}
+                style={styles.iconButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+                <Icon name="edit" size={22} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+                onPress={handleRequestHelp}
+                style={styles.iconButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+                <Icon name="help" size={22} color={colors.warning} />
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <>
             <TouchableOpacity 
                 style={styles.container} 
-                onPress={onPress}
+                onPress={handleTaskPress}
                 activeOpacity={0.7}
             >
-                <View style={styles.leftContent}>
-                    <Text style={styles.title} numberOfLines={1}>
-                        {task.title || task.nom || task.name}
-                    </Text>
-                    <View style={styles.infoRow}>
-                        <View style={styles.assignSection}>
-                            <TouchableOpacity 
-                                onPress={handleAssign}
-                                style={styles.assignButton}
-                            >
-                                <Icon name="person-add" size={20} color={colors.primary} />
-                            </TouchableOpacity>
-                            <Text style={styles.assignedTo}>
-                                {getMemberName()}
+                <View style={styles.leftBorder} />
+                
+                <View style={styles.content}>
+                    <View style={styles.header}>
+                        <View style={styles.titleContainer}>
+                            <Text style={styles.title} numberOfLines={1}>
+                                {task.title}
+                            </Text>
+                            <View style={[styles.statusBadge, getStatusStyle(task.status)]}>
+                                <Text style={styles.statusText}>
+                                    {getStatusText(task.status)}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.details}>
+                        <View style={styles.detailRow}>
+                            <Icon name="folder" size={16} color={colors.textGray} />
+                            <Text style={styles.detailText} numberOfLines={1}>
+                                {task.project}
                             </Text>
                         </View>
-                        <TouchableOpacity 
-                            style={[styles.status, getStatusStyle(task.statut || task.status)]}
-                            onPress={onStatusChange}
-                        >
-                            <Text style={styles.statusText}>
-                                {getStatusText(task.statut || task.status)}
+
+                        <View style={styles.detailRow}>
+                            <Icon name="person" size={16} color={colors.textGray} />
+                            <Text style={styles.detailText} numberOfLines={1}>
+                                {task.assignedTo || "Non assigné"}
                             </Text>
-                        </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.detailRow}>
+                            <Icon name="event" size={16} color={colors.textGray} />
+                            <Text style={styles.detailText}>
+                                {task.time}
+                            </Text>
+                        </View>
                     </View>
-                </View>
-                
-                <View style={styles.actions}>
-                    <TouchableOpacity 
-                        onPress={handleEdit}
-                        style={styles.iconButton}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <Icon name="edit" size={22} color={colors.primary} />
-                    </TouchableOpacity>
+
+                    {actions}
                 </View>
             </TouchableOpacity>
 
@@ -183,72 +259,95 @@ const TaskItem = memo(({ task, onPress, onStatusChange, projectMembers = [] }) =
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        backgroundColor: "#fff",
+        flexDirection: 'row',
+        backgroundColor: '#fff',
         borderRadius: 12,
-        marginHorizontal: 16,
-        marginVertical: 6,
-        padding: 16,
+        marginBottom: 12,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 3,
+        overflow: 'hidden',
+        minHeight: 100,
     },
-    leftContent: {
+    leftBorder: {
+        width: 4,
+        backgroundColor: colors.primary,
+    },
+    content: {
         flex: 1,
-        marginRight: 12,
+        padding: 12,
+    },
+    header: {
+        marginBottom: 8,
+    },
+    titleContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
     },
     title: {
         fontSize: 16,
-        fontWeight: "600",
-        color: "#2c3e50",
-        marginBottom: 8,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        fontWeight: '600',
+        color: '#2c3e50',
         flex: 1,
-    },
-    assignSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    assignButton: {
         marginRight: 8,
-        padding: 4,
     },
-    assignedTo: {
-        fontSize: 14,
-        color: "#7f8c8d",
-    },
-    status: {
-        alignSelf: 'flex-start',
-        paddingHorizontal: 12,
+    statusBadge: {
+        paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
     },
     statusDone: {
-        backgroundColor: colors.success + "20",
+        backgroundColor: `${colors.success}20`,
     },
     statusInProgress: {
-        backgroundColor: colors.warning + "20",
+        backgroundColor: `${colors.warning}20`,
     },
     statusTodo: {
-        backgroundColor: colors.info + "20",
+        backgroundColor: `${colors.info}20`,
     },
     statusText: {
-        fontSize: 12,
-        fontWeight: "600",
-        color: "#2c3e50",
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    details: {
+        marginBottom: 8,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    detailText: {
+        marginLeft: 6,
+        fontSize: 13,
+        color: colors.textGray,
+        flex: 1,
+    },
+    description: {
+        fontSize: 14,
+        color: '#666',
+        lineHeight: 20,
+        marginBottom: 12,
     },
     actions: {
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+        paddingTop: 8,
         gap: 12,
+    },
+    actionButton: {
+        padding: 8,
+        backgroundColor: '#f8f9fa',
+        borderRadius: 8,
     },
     iconButton: {
         padding: 4,
@@ -300,6 +399,34 @@ const styles = StyleSheet.create({
         color: "#666",
         fontSize: 16,
         marginVertical: 20,
+    },
+    helpInput: {
+        flex: 1,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 5,
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 20,
+    },
+    cancelButton: {
+        backgroundColor: colors.warning,
+    },
+    submitButton: {
+        backgroundColor: colors.primary,
+    },
+    cancelButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    submitButtonText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
     },
 });
 
