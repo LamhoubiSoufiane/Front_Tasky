@@ -14,10 +14,7 @@ const selectAuthState = state => {
 // Sélecteurs mémorisés pour les tâches
 export const selectTasks = createSelector(
   [selectTaskState],
-  taskState => {
-    console.log('Task State in selector:', taskState);
-    return taskState.tasks || [];
-  }
+  taskState => taskState.tasks || []
 );
 
 export const selectTasksLoading = createSelector(
@@ -57,16 +54,35 @@ export const selectAuthToken = createSelector(
 export const selectValidTasks = createSelector(
   [selectTasks],
   tasks => {
-    console.log('Tasks in validTasks selector:', tasks);
-    const validTasks = tasks.filter(task => 
-      task && 
-      task.location && 
-      typeof parseFloat(task.location.latitude) === 'number' && 
-      !isNaN(parseFloat(task.location.latitude)) &&
-      typeof parseFloat(task.location.longitude) === 'number' && 
-      !isNaN(parseFloat(task.location.longitude))
-    );
-    console.log('Valid tasks after filter:', validTasks);
+    console.log('État des tâches dans le store:', tasks);
+    
+    if (!Array.isArray(tasks)) {
+      console.log('Les tâches ne sont pas un tableau:', tasks);
+      return [];
+    }
+
+    const validTasks = tasks.filter(task => {
+      if (!task) return false;
+      
+      const hasLocation = task.location && 
+        typeof task.location === 'object' &&
+        task.location.latitude && 
+        task.location.longitude;
+      
+      const isValidLocation = hasLocation &&
+        !isNaN(parseFloat(task.location.latitude)) &&
+        !isNaN(parseFloat(task.location.longitude));
+      
+      if (!hasLocation) {
+        console.log('Tâche sans localisation:', task.id);
+      } else if (!isValidLocation) {
+        console.log('Tâche avec localisation invalide:', task.id, task.location);
+      }
+      
+      return isValidLocation;
+    });
+
+    console.log(`Tâches valides: ${validTasks.length}/${tasks.length}`);
     return validTasks;
   }
 );
