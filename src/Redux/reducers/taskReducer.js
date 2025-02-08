@@ -45,7 +45,7 @@ export default function taskReducer(state = initialState, action) {
                 ...state,
                 loading: false,
                 tasks: formattedTasks,
-                error: null
+                error: null,
                 cache: {
                     timestamp: Date.now(),
                     data: action.payload

@@ -32,8 +32,7 @@ import AddTaskForm from "../Components/AddTaskForm";
 import TaskItem from "../Components/TaskItem";
 import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 import { API_WS_URL, API_BASE_URL } from '../config';
-import { io } from 'socket.io-client';
-
+import { io } from 'socket.io-client/dist/socket.io';
 const CreateTaskModal = React.memo(
 	({ visible, onClose, onSubmit, members = [] }) => {
 		const [title, setTitle] = useState("");

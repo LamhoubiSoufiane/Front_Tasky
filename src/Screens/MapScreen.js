@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { View, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, Text, Alert } from 'react-native';
-import MapView, { Marker, UrlTile, Polyline } from 'react-native-maps';
+import { View, StyleSheet, ActivityIndicator, Modal, TouchableOpacity, Text, Alert, TextInput, ScrollView } from 'react-native';
+import MapView, { Marker, UrlTile, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { io } from 'socket.io-client';
+import { io } from 'socket.io-client/dist/socket.io';
 import { API_BASE_URL } from '../config';
 import {
-  fetchMyTasks,
+  fetchUserTasks,
 } from "../Redux/actions/taskActions";
 import {
   selectTasks,

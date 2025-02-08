@@ -314,7 +314,7 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                             <Text style={styles.statusText}>
                                 {getStatusText(task.statut || task.status)}
                             </Text>
-                        </View>
+                        </TouchableOpacity>
                     </View>
 
                     {actions}
