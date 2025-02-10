@@ -14,122 +14,156 @@ const TaskFilters = ({
     onMemberChange 
 }) => {
     const filters = [
-        { id: 'all', label: 'Tous' },
-        { id: 'en-cours', label: 'En cours' },
-        { id: 'terminees', label: 'Terminées' },
-        { id: 'a-faire', label: 'À faire' }
+        { id: 'all', label: 'Tous', icon: 'format-list-bulleted' },
+        { id: 'a faire', label: 'À faire', icon: 'clock-outline' },
+        { id: 'en cours', label: 'En cours', icon: 'progress-clock' },
+        { id: 'terminee', label: 'Terminé', icon: 'check-circle-outline' },
+        { id: 'annulee', label: 'Annulé', icon: 'close-circle-outline' },
     ];
 
     return (
         <View style={styles.container}>
-            <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                style={styles.filtersContainer}
-                contentContainerStyle={styles.filtersContent}
-            >
-                {filters.map((filter) => (
-                    <TouchableOpacity
-                        key={`status-filter-${filter.id}`}
-                        style={[
-                            styles.filterButton,
-                            activeFilter === filter.id && styles.activeFilterButton,
-                        ]}
-                        onPress={() => onFilterChange(filter.id)}
-                    >
-                        <Text style={[
-                            styles.filterText,
-                            activeFilter === filter.id && styles.activeFilterText
-                        ]}>
-                            {filter.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
-
-            {projects && projects.length > 0 && (
+            <View style={styles.filterSection}>
+                <Text style={styles.sectionTitle}>Statut</Text>
                 <ScrollView 
                     horizontal 
                     showsHorizontalScrollIndicator={false}
                     style={styles.filtersContainer}
-                    contentContainerStyle={[styles.filtersContent, styles.projectsContainer]}
                 >
-                    <TouchableOpacity
-                        key="all-projects"
-                        style={[
-                            styles.filterButton,
-                            !selectedProject && styles.activeFilterButton,
-                        ]}
-                        onPress={() => onProjectChange(null)}
-                    >
-                        <Text style={[
-                            styles.filterText,
-                            !selectedProject && styles.activeFilterText
-                        ]}>
-                            Tous les projets
-                        </Text>
-                    </TouchableOpacity>
-                    {projects.map((project) => (
+                    {filters.map((filter) => (
                         <TouchableOpacity
-                            key={`project-filter-${project.id}`}
+                            key={filter.id}
                             style={[
                                 styles.filterButton,
-                                selectedProject?.id === project.id && styles.activeFilterButton,
+                                activeFilter === filter.id && styles.activeFilterButton,
                             ]}
-                            onPress={() => onProjectChange(project)}
+                            onPress={() => onFilterChange(filter.id)}
                         >
-                            <Icon name="folder" size={16} color={selectedProject?.id === project.id ? "#fff" : colors.primary} />
+                            <Icon 
+                                name={filter.icon} 
+                                size={20} 
+                                color={activeFilter === filter.id ? "#fff" : "#4c669f"} 
+                                style={styles.filterIcon}
+                            />
                             <Text style={[
                                 styles.filterText,
-                                selectedProject?.id === project.id && styles.activeFilterText
-                            ]} numberOfLines={1}>
-                                {project.nom}
+                                activeFilter === filter.id && styles.activeFilterText
+                            ]}>
+                                {filter.label}
                             </Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
+            </View>
+
+            {projects && projects.length > 0 && (
+                <View style={styles.filterSection}>
+                    <Text style={styles.sectionTitle}>Projets</Text>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.filtersContainer}
+                    >
+                        <TouchableOpacity
+                            style={[
+                                styles.filterButton,
+                                !selectedProject && styles.activeFilterButton,
+                            ]}
+                            onPress={() => onProjectChange(null)}
+                        >
+                            <Icon 
+                                name="folder-multiple" 
+                                size={20} 
+                                color={!selectedProject ? "#fff" : "#4c669f"} 
+                                style={styles.filterIcon}
+                            />
+                            <Text style={[
+                                styles.filterText,
+                                !selectedProject && styles.activeFilterText
+                            ]}>
+                                Tous les projets
+                            </Text>
+                        </TouchableOpacity>
+                        {projects.map((project) => (
+                            <TouchableOpacity
+                                key={project.id}
+                                style={[
+                                    styles.filterButton,
+                                    selectedProject?.id === project.id && styles.activeFilterButton,
+                                ]}
+                                onPress={() => onProjectChange(project)}
+                            >
+                                <Icon 
+                                    name="folder" 
+                                    size={20} 
+                                    color={selectedProject?.id === project.id ? "#fff" : "#4c669f"} 
+                                    style={styles.filterIcon}
+                                />
+                                <Text style={[
+                                    styles.filterText,
+                                    selectedProject?.id === project.id && styles.activeFilterText
+                                ]}>
+                                    {project.nom}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
             )}
 
             {members && members.length > 0 && (
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    style={[styles.filtersContainer, styles.membersContainer]}
-                >
-                    <TouchableOpacity
-                        key="all-members"
-                        style={[
-                            styles.filterButton,
-                            !selectedMember && styles.activeFilterButton,
-                        ]}
-                        onPress={() => onMemberChange(null)}
+                <View style={styles.filterSection}>
+                    <Text style={styles.sectionTitle}>Membres</Text>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.filtersContainer}
                     >
-                        <Text style={[
-                            styles.filterText,
-                            !selectedMember && styles.activeFilterText
-                        ]}>
-                            Tous les membres
-                        </Text>
-                    </TouchableOpacity>
-                    {members.map((member) => (
                         <TouchableOpacity
-                            key={`member-filter-${member.id}`}
                             style={[
                                 styles.filterButton,
-                                selectedMember?.id === member.id && styles.activeFilterButton,
+                                !selectedMember && styles.activeFilterButton,
                             ]}
-                            onPress={() => onMemberChange(member)}
+                            onPress={() => onMemberChange(null)}
                         >
-                            <Icon name="account" size={16} color={selectedMember?.id === member.id ? "#fff" : colors.primary} />
+                            <Icon 
+                                name="account-group" 
+                                size={20} 
+                                color={!selectedMember ? "#fff" : "#4c669f"} 
+                                style={styles.filterIcon}
+                            />
                             <Text style={[
                                 styles.filterText,
-                                selectedMember?.id === member.id && styles.activeFilterText
+                                !selectedMember && styles.activeFilterText
                             ]}>
-                                {member.username}
+                                Tous les membres
                             </Text>
                         </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                        {members.map((member) => (
+                            <TouchableOpacity
+                                key={member.id}
+                                style={[
+                                    styles.filterButton,
+                                    selectedMember?.id === member.id && styles.activeFilterButton,
+                                ]}
+                                onPress={() => onMemberChange(member)}
+                            >
+                                <Icon 
+                                    name="account" 
+                                    size={20} 
+                                    color={selectedMember?.id === member.id ? "#fff" : "#4c669f"} 
+                                    style={styles.filterIcon}
+                                />
+                                <Text style={[
+                                    styles.filterText,
+                                    selectedMember?.id === member.id && styles.activeFilterText
+                                ]}>
+                                    {member.username}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
             )}
         </View>
     );
@@ -140,6 +174,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         paddingVertical: 8,
     },
+    filterSection: {
+        marginBottom: 12,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginLeft: 16,
+        marginBottom: 8,
     filtersContainer: {
         marginBottom: 4,
     },
@@ -154,11 +197,19 @@ const styles = StyleSheet.create({
     membersContainer: {
         marginTop: 8,
     },
+    filtersContainer: {
+        paddingHorizontal: 12,
+    },
     filterButton: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#f0f2f5',
         paddingHorizontal: 16,
         paddingVertical: 8,
+        borderRadius: 20,
+        marginHorizontal: 4,
+        marginVertical: 4,
+        elevation: 1,
         borderRadius: 25,
         backgroundColor: '#f0f0f0',
         marginRight: 8,
@@ -168,23 +219,12 @@ const styles = StyleSheet.create({
         height: 36,
     },
     activeFilterButton: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-        shadowColor: colors.primary,
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 3,
+        backgroundColor: '#4c669f',
     },
     filterText: {
         color: colors.primary,
-        marginLeft: 4,
-        fontWeight: '600',
-        fontSize: 13,
-        textAlign: 'center',
+        fontSize: 14,
+        fontWeight: '500',
     },
     activeFilterText: {
         color: '#fff',

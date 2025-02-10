@@ -487,6 +487,65 @@ export const fetchUserTasks = ({ token, userId }) => async (dispatch) => {
     return { success: false, error: errorMessage };
   }
 };
+export const fetchMyTasks = () => async (dispatch, getState) => {
+  try {
+      dispatch(setLoading(true));
+      const token = getState().auth.tokens?.access_token;
+
+      if (!token) {
+          throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/tasks/my-tasks`, {
+          headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+          },
+      });
+
+      if (!response.ok) {
+          throw new Error('Failed to fetch tasks');
+      }
+
+      const tasks = await response.json();
+      
+      // Récupérer les projets uniques
+      const uniqueProjectIds = [...new Set(tasks.map(task => task.projetId))];
+      const projectsData = {};
+
+      // Récupérer les détails de chaque projet
+      for (const projectId of uniqueProjectIds) {
+          if (projectId) {
+              const projectResponse = await fetch(`${API_BASE_URL}/projets/${projectId}`, {
+                  headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                  },
+              });
+
+              if (projectResponse.ok) {
+                  const projectData = await projectResponse.json();
+                  projectsData[projectId] = projectData;
+              }
+          }
+      }
+
+      // Enrichir les tâches avec les données des projets
+      const enrichedTasks = tasks.map(task => ({
+          ...task,
+          projet: projectsData[task.projetId] || null
+      }));
+
+      dispatch(setTasks(enrichedTasks));
+      return { success: true, data: enrichedTasks };
+  } catch (error) {
+      console.error('Error fetching my tasks:', error);
+      dispatch(setError(error.message));
+      return { success: false, error: error.message };
+  } finally {
+      dispatch(setLoading(false));
+  }
+};
 
 // Action pour invalider le cache
 export const invalidateTasksCache = () => ({ type: 'TASKS_CACHE_INVALIDATE' });

@@ -1,85 +1,31 @@
-import React, { memo, useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput } from "react-native";
+import React, { memo, useState, useCallback } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
 import { colors } from "../assets/colors";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
-import { assignTaskToMember, notifyTaskStatusUpdated, notifyTaskAssigned, updateTaskStatus } from "../Redux/actions/taskActions";
+import { assignTaskToMember, updateTaskStatus } from "../Redux/actions/taskActions";
+import { createHelpRequest } from '../Redux/actions/helpRequestActions';
 import Toast from "react-native-toast-message";
-import io from 'socket.io-client';
-import { API_BASE_URL } from '../config';
-import { createHelpRequest } from "../Redux/actions/helpRequestActions";
 
-const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMembers = [] }) => {
+const TaskItem = memo(({ task, projectMembers = [], onStatusChange }) => {
     const navigation = useNavigation();
     const dispatch = useDispatch();
     const currentUser = useSelector(state => state.auth.user);
     const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
-    const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
-    const [helpDescription, setHelpDescription] = useState("");
-    
-    const [task, setTask] = useState(initialTask);
+    const currentUser = useSelector(state => state.auth.user);
 
-    useEffect(() => {
-        setTask(initialTask);
-    }, [initialTask]);
-
-    useEffect(() => {
-        socket = io(API_BASE_URL, {
-            path: '/websockets',
-            transports: ['websocket'],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 3000,
+    const handleEdit = useCallback(() => {
+        navigation.navigate("TaskDetails", { 
+            taskId: task.id,
+            isEditMode: true 
         });
+    }, [navigation, task.id]);
 
-        socket.on('taskStatusUpdated', (data) => {
-            if (data.data.taskId === task.id) {
-                setTask(prevTask => ({
-                    ...prevTask,
-                    statut: data.data.status
-                }));
-            }
-        });
-
-        socket.on('taskAssigned', (data) => {
-            if (data.data.taskId === task.id) {
-                const assignedMember = projectMembers.find(member => member.id === data.data.newAssignee);
-                setTask(prevTask => ({
-                    ...prevTask,
-                    assignedTo: data.data.newAssignee,
-                    member: assignedMember ? {
-                        id: assignedMember.id,
-                        username: assignedMember.username || assignedMember.name,
-                        name: assignedMember.name || assignedMember.username
-                    } : null
-                }));
-            }
-        });
-
-        return () => {
-            socket.disconnect();
-        };
-    }, [task.id, projectMembers]);
-
-    const handleTaskPress = () => {
-        navigation.navigate("TaskDetails", { taskId: task.id });
-    };
-
-    const handleAssign = async (memberId) => {
+    const handleAssign = useCallback(async (memberId) => {
         try {
             const result = await dispatch(assignTaskToMember(task.id, memberId));
             if (result.success) {
-                const assignedMember = projectMembers.find(member => member.id === memberId);
-                setTask(prevTask => ({
-                    ...prevTask,
-                    assignedTo: memberId,
-                    member: {
-                        id: memberId,
-                        username: assignedMember?.username || assignedMember?.name,
-                        name: assignedMember?.name || assignedMember?.username
-                    }
-                }));
                 Toast.show({
                     type: "success",
                     text1: "Succès",
@@ -88,6 +34,7 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                     visibilityTime: 3000,
                 });
                 setIsAssignModalVisible(false);
+                if (onStatusChange) onStatusChange();
             } else {
                 Toast.show({
                     type: "error",
@@ -107,9 +54,9 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                 visibilityTime: 3000,
             });
         }
-    };
+    }, [dispatch, task.id, onStatusChange]);
 
-    const handleStatusChange = async () => {
+    const handleStatusChange = useCallback(async () => {
         try {
             const currentStatus = task.statut || task.status;
             let newStatus;
@@ -130,18 +77,9 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                     newStatus = "a faire";
             }
 
-            console.log('Envoi de la mise à jour du statut:', { taskId: task.id, newStatus });
             const result = await dispatch(updateTaskStatus(task.id, newStatus));
             
             if (result.success) {
-                console.log('Mise à jour du statut réussie:', result.data);
-                // Mettre à jour l'état local avec les nouvelles données
-                setTask(prevTask => ({
-                    ...prevTask,
-                    ...result.data,
-                    statut: result.data.statut || result.data.status || newStatus
-                }));
-
                 Toast.show({
                     type: "success",
                     text1: "Succès",
@@ -149,8 +87,8 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                     position: "top",
                     visibilityTime: 3000,
                 });
+                if (onStatusChange) onStatusChange();
             } else {
-                console.error('Échec de la mise à jour du statut:', result.error);
                 Toast.show({
                     type: "error",
                     text1: "Erreur",
@@ -169,54 +107,10 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                 visibilityTime: 3000,
             });
         }
-    };
+    }, [dispatch, task.id, task.statut, task.status, onStatusChange]);
 
-    const getMemberName = () => {
-        if (task.member) {
-            return task.member.username || task.member.name || 'Non assigné';
-        }
-        if (task.assignedTo) {
-            const assignedMember = projectMembers.find(member => member.id === task.assignedTo);
-            return assignedMember ? (assignedMember.username || assignedMember.name) : 'Non assigné';
-        }
-        return "Non assigné";
-    };
-
-    const getStatusStyle = (status) => {
-        if (!status) return styles.statusTodo;
-        switch (status.toLowerCase()) {
-            case "terminee":
-                return styles.statusDone;
-            case "en cours":
-                return styles.statusInProgress;
-            case "a faire":
-                return styles.statusTodo;
-            case "annulee": 
-            return { backgroundColor: '#FF0000' }; 
-            default:
-                return styles.statusTodo;
-        }
-    };
-
-    const getStatusText = (status) => {
-        if (!status) return "À FAIRE";
-        switch (status.toLowerCase()) {
-            case "terminee":
-                return "TERMINÉ";
-            case "en cours":
-                return "EN COURS";
-            case "a faire":
-                return "À FAIRE";
-            case "annulee": 
-                return "ANNULEE"; 
-            default:
-                return "À FAIRE";
-        }
-    };
-
-    const handleRequestHelp = async () => {
+    const handleRequestHelp = useCallback(async () => {
         try {
-            // Vérifier si la tâche est assignée à l'utilisateur actuel
             if (!task.member || task.member.id !== currentUser?.id) {
                 Toast.show({
                     type: "error",
@@ -251,44 +145,50 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
             Toast.show({
                 type: "error",
                 text1: "Erreur",
-                text2: "Une erreur est survenue",
+                text2: "Impossible de créer la demande d'aide",
                 position: "top",
                 visibilityTime: 3000,
             });
         }
-    };
+    }, [dispatch, task.id, task.member, currentUser]);
 
-    const actions = (
-        <View style={styles.actions}>
-            <TouchableOpacity 
-                onPress={handleAssign}
-                style={styles.iconButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-                <Icon name="person-add" size={22} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-                onPress={handleTaskPress}
-                style={styles.iconButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-                <Icon name="edit" size={22} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-                onPress={handleRequestHelp}
-                style={styles.iconButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-                <Icon name="help" size={22} color={colors.warning} />
-            </TouchableOpacity>
-        </View>
-    );
+    const getMemberName = useCallback(() => {
+        if (!task.member) return "Non assigné";
+        return task.member.name || task.member.username || "Non assigné";
+    }, [task.member]);
+
+    const getStatusStyle = useCallback((status) => {
+        switch (status?.toLowerCase()) {
+            case "terminee":
+                return styles.statusCompleted;
+            case "en cours":
+                return styles.statusInProgress;
+            case "annulee":
+                return styles.statusCancelled;
+            default:
+                return styles.statusTodo;
+        }
+    }, []);
+
+    const getStatusText = useCallback((status) => {
+        switch (status?.toLowerCase()) {
+            case "terminee":
+                return "TERMINÉ";
+            case "en cours":
+                return "EN COURS";
+            case "a faire":
+                return "À FAIRE";
+            case "annulee": 
+                return "ANNULÉ"; 
+            default:
+                return "À FAIRE";
+        }
+    }, []);
 
     return (
         <>
             <TouchableOpacity 
                 style={styles.container} 
-                onPress={handleTaskPress}
                 activeOpacity={0.7}
             >
                 <View style={styles.leftContent}>
@@ -315,9 +215,24 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                                 {getStatusText(task.statut || task.status)}
                             </Text>
                         </TouchableOpacity>
+                        <TouchableOpacity 
+                            onPress={handleRequestHelp}
+                            style={styles.iconButton}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <Icon name="help" size={22} color={colors.warning} />
+                        </TouchableOpacity>
                     </View>
-
-                    {actions}
+                </View>
+                
+                <View style={styles.actions}>
+                    <TouchableOpacity 
+                        onPress={handleEdit}
+                        style={styles.iconButton}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Icon name="edit" size={22} color={colors.primary} />
+                    </TouchableOpacity>
                 </View>
             </TouchableOpacity>
 
@@ -325,7 +240,8 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                 visible={isAssignModalVisible}
                 animationType="slide"
                 transparent={true}
-                onRequestClose={() => setIsAssignModalVisible(false)}>
+                onRequestClose={() => setIsAssignModalVisible(false)}
+            >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Assigner la tâche à</Text>
@@ -335,7 +251,8 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                                     <TouchableOpacity
                                         key={member.id}
                                         style={styles.memberItem}
-                                        onPress={() => handleAssign(member.id)}>
+                                        onPress={() => handleAssign(member.id)}
+                                    >
                                         <Text style={styles.memberName}>
                                             {member.name || member.username}
                                         </Text>
@@ -349,7 +266,8 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
                         </ScrollView>
                         <TouchableOpacity
                             style={styles.closeButton}
-                            onPress={() => setIsAssignModalVisible(false)}>
+                            onPress={() => setIsAssignModalVisible(false)}
+                        >
                             <Text style={styles.closeButtonText}>Fermer</Text>
                         </TouchableOpacity>
                     </View>
@@ -361,90 +279,71 @@ const TaskItem = memo(({ task: initialTask, onPress, onStatusChange, projectMemb
 
 const styles = StyleSheet.create({
     container: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#fff",
+        padding: 16,
         borderRadius: 12,
         marginBottom: 12,
+        elevation: 2,
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
             height: 2,
         },
         shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
-        overflow: 'hidden',
-        minHeight: 100,
+        shadowRadius: 4,
     },
-    leftBorder: {
-        width: 4,
-        backgroundColor: colors.primary,
-    },
-    content: {
+    leftContent: {
         flex: 1,
-        padding: 12,
+        marginRight: 16,
     },
     header: {
         marginBottom: 8,
     },
-    titleContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 4,
+    infoRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
-    title: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#2c3e50',
-        flex: 1,
-        marginRight: 8,
+    assignSection: {
+        flexDirection: "row",
+        alignItems: "center",
     },
-    statusBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
+    assignButton: {
+        padding: 4,
     },
-    statusDone: {
-        backgroundColor: `${colors.success}20`,
+    assignedTo: {
+        marginLeft: 8,
+        fontSize: 14,
+        color: "#666",
     },
-    statusInProgress: {
-        backgroundColor: `${colors.warning}20`,
+    status: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        marginLeft: 12,
     },
     statusTodo: {
-        backgroundColor: `${colors.info}20`,
+        backgroundColor: "#e9ecef",
+    },
+    statusInProgress: {
+        backgroundColor: "#cce5ff",
+    },
+    statusCompleted: {
+        backgroundColor: "#d4edda",
+    },
+    statusCancelled: {
+        backgroundColor: "#f8d7da",
     },
     statusText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    details: {
-        marginBottom: 8,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    detailText: {
-        marginLeft: 6,
-        fontSize: 13,
-        color: colors.textGray,
-        flex: 1,
-    },
-    description: {
-        fontSize: 14,
-        color: '#666',
-        lineHeight: 20,
-        marginBottom: 12,
+        fontSize: 12,
+        fontWeight: "600",
     },
     actions: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
-        paddingTop: 8,
-        gap: 12,
+        flexDirection: "row",
+        alignItems: "center",
     },
     actionButton: {
         padding: 8,
@@ -453,8 +352,7 @@ const styles = StyleSheet.create({
     },
     iconButton: {
         padding: 4,
-        backgroundColor: "#f8f9fa",
-        borderRadius: 8,
+        marginLeft: 8,
     },
     modalContainer: {
         flex: 1,
@@ -463,44 +361,44 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
     modalContent: {
-        width: "80%",
-        maxHeight: "70%",
         backgroundColor: "#fff",
-        borderRadius: 10,
+        borderRadius: 12,
         padding: 20,
+        width: "80%",
+        maxHeight: "80%",
     },
     modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 20,
-        textAlign: "center",
+        fontSize: 18,
+        fontWeight: "600",
+        marginBottom: 16,
+        color: "#2c3e50",
     },
     memberItem: {
-        padding: 15,
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: "#eee",
     },
     memberName: {
         fontSize: 16,
-        color: "#333",
+        color: "#2c3e50",
+    },
+    noMembersText: {
+        fontSize: 16,
+        color: "#666",
+        textAlign: "center",
+        marginTop: 20,
     },
     closeButton: {
-        marginTop: 20,
-        padding: 15,
+        marginTop: 16,
         backgroundColor: colors.primary,
+        padding: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     closeButtonText: {
         color: "#fff",
         fontSize: 16,
-        fontWeight: "bold",
-    },
-    noMembersText: {
-        textAlign: "center",
-        color: "#666",
-        fontSize: 16,
-        marginVertical: 20,
+        fontWeight: "600",
     },
     helpInput: {
         flex: 1,
@@ -523,12 +421,7 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         color: "#fff",
         fontSize: 16,
-        fontWeight: "bold",
-    },
-    submitButtonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "bold",
+        fontWeight: "600",
     },
 });
 

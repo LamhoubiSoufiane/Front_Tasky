@@ -1,15 +1,39 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, FlatList } from 'react-native';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchMyTasks } from '../Redux/actions/taskActions';
 import { loadTeamProjects } from '../Redux/actions/projectActions';
 import TaskCalendar from '../Components/TaskCalendar';
 import TaskFilters from '../Components/TaskFilters';
 import TaskItem from '../Components/TaskItem';
+import TaskHeader from '../Components/TaskHeader';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../assets/colors';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const HEADER_HEIGHT = SCREEN_HEIGHT * 0.3; // 30% de la hauteur de l'écran
+const LoadingComponent = () => (
+    <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+);
+
+const EmptyTaskList = () => (
+    <View style={styles.emptyState}>
+        <Icon name="clipboard-text-outline" size={50} color="#999" />
+        <Text style={styles.emptyStateText}>Aucune tâche trouvée</Text>
+    </View>
+);
+
+const ErrorComponent = ({ error, onRetry }) => (
+    <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={onRetry}
+        >
+            <Text style={styles.retryButtonText}>Réessayer</Text>
+        </TouchableOpacity>
+    </View>
+);
 
 const TaskScreen = () => {
     const dispatch = useDispatch();
@@ -19,131 +43,100 @@ const TaskScreen = () => {
     const [selectedMember, setSelectedMember] = useState(null);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    // Memoized selectors
-    const tasks = useSelector((state) => state.task?.tasks || []);
-    const loading = useSelector((state) => state.task?.loading || false);
-    const projects = useSelector((state) => {
-        const projectsObj = state.project?.projects || {};
+    const tasks = useSelector(state => state.task?.tasks || []);
+    const projectsObj = useSelector(state => state.project?.projects || {});
+    const members = useSelector(state => state.project?.allMembers || []);
+    const user = useSelector(state => state.auth?.user);
+    const teams = useSelector(state => state.team?.teams || []);
+
+    const projects = useMemo(() => {
         return Object.values(projectsObj).flat();
-    });
-    const members = useSelector((state) => state.project?.allMembers || []);
-    const user = useSelector((state) => state.auth?.user);
+    }, [projectsObj]);
 
-    // Optimized filtered tasks
     const filteredTasks = useMemo(() => {
-        if (!Array.isArray(tasks)) return [];
-
         return tasks.filter((task) => {
-            if (!task) return false;
-
             const taskDate = task.endDate ? new Date(task.endDate).toDateString() : null;
             const filterDate = selectedDate ? selectedDate.toDateString() : null;
-
             const dateMatch = !selectedDate || (taskDate === filterDate);
             const memberMatch = !selectedMember || task.assignedToId === selectedMember.id;
             const projectMatch = !selectedProject || task.projetId === selectedProject.id;
-
             let statusMatch = true;
             if (activeFilter !== 'all') {
                 const taskStatus = task.statut?.toLowerCase() || '';
-                const statusMap = {
-                    'a-faire': 'a faire',
-                    'en-cours': 'en cours',
-                    'terminees': 'termine'
-                };
-                statusMatch = taskStatus === statusMap[activeFilter];
+                statusMatch = taskStatus === activeFilter;
             }
-
             return dateMatch && memberMatch && projectMatch && statusMatch;
         });
     }, [tasks, selectedDate, selectedMember, selectedProject, activeFilter]);
 
-    // Initial data loading
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                setError(null);
-                setIsLoading(true);
-                const result = await dispatch(fetchMyTasks());
-                
-                if (!result.success) {
-                    setError(result.error || 'Erreur lors du chargement des tâches');
-                    return;
-                }
+    const loadAllTeamProjects = useCallback(async () => {
+        try {
+            const loadPromises = teams.map(team => dispatch(loadTeamProjects(team.id)));
+            await Promise.all(loadPromises);
+        } catch (error) {
+            console.error('Error loading team projects:', error);
+            setError('Erreur lors du chargement des projets');
+        }
+    }, [teams, dispatch]);
 
-                if (user?.activeTeam) {
-                    const projectResult = await dispatch(loadTeamProjects(user.activeTeam));
-                    if (!projectResult.success) {
-                        setError(projectResult.error || 'Erreur lors du chargement des projets');
-                    }
-                }
-            } catch (error) {
-                setError('Erreur lors du chargement des données');
-            } finally {
-                setIsLoading(false);
+    const loadData = useCallback(async () => {
+        try {
+            setError(null);
+            const result = await dispatch(fetchMyTasks());
+            if (!result.success) {
+                setError(result.error || 'Erreur lors du chargement des tâches');
+                return;
             }
-        };
-        loadData();
-    }, [dispatch, user?.activeTeam]);
+            await loadAllTeamProjects();
+        } catch (error) {
+            console.error('Error loading data:', error);
+            setError('Erreur lors du chargement des données');
+        } finally {
+            setIsLoading(false);
+            setRefreshing(false);
+        }
+    }, [dispatch, loadAllTeamProjects]);
 
-    // Progress calculation
-    const overallProgress = useMemo(() => {
-        if (!Array.isArray(tasks) || tasks.length === 0) return 0;
-        const completedTasks = tasks.filter(task => task?.statut?.toLowerCase() === "termine").length;
-        return Math.round((completedTasks / tasks.length) * 100);
-    }, [tasks]);
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        loadData();
+    }, [loadData]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    const renderTaskItem = useCallback(({ item }) => (
+        <TaskItem 
+            task={item}
+            projectMembers={members}
+            onStatusChange={loadData}
+        />
+    ), [members, loadData]);
+
+    const keyExtractor = useCallback((item) => item.id.toString(), []);
 
     if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Chargement des tâches...</Text>
-            </View>
-        );
+        return <LoadingComponent />;
     }
 
     if (error) {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity 
-                    style={styles.retryButton}
-                    onPress={() => {
-                        setError(null);
-                        setIsLoading(true);
-                        dispatch(fetchMyTasks());
-                    }}>
-                    <Text style={styles.retryButtonText}>Réessayer</Text>
-                </TouchableOpacity>
-            </View>
-        );
+        return <ErrorComponent error={error} onRetry={loadData} />;
     }
 
     return (
         <View style={styles.container}>
-            <View style={styles.headerSection}>
-                <View style={styles.welcomeContainer}>
-                    <Text style={styles.welcomeText}>
-                        Hello {user?.username || user?.name || 'User'}!
-                    </Text>
-                    <View style={styles.progressCard}>
-                        <Text style={styles.progressText}>Progression des tâches</Text>
-                        <View style={styles.progressCircle}>
-                            <Text style={styles.progressPercentage}>{overallProgress}%</Text>
-                        </View>
-                    </View>
-                </View>
-                
-                <View style={styles.calendarContainer}>
-                    <TaskCalendar
-                        selectedDate={selectedDate}
-                        onDateSelect={setSelectedDate}
-                    />
-                </View>
-            </View>
+            <TaskHeader user={user} />
+            
+            <View style={styles.mainContent}>
+                <TaskCalendar
+                    selectedDate={selectedDate}
+                    onDateSelect={setSelectedDate}
+                    tasks={tasks}
+                />
 
-            <View style={styles.filtersContainer}>
                 <TaskFilters
                     activeFilter={activeFilter}
                     onFilterChange={setActiveFilter}
@@ -154,38 +147,30 @@ const TaskScreen = () => {
                     selectedMember={selectedMember}
                     onMemberChange={setSelectedMember}
                 />
-            </View>
 
-            <View style={styles.tasksContainer}>
-                <FlatList
-                    data={filteredTasks}
-                    renderItem={({ item }) => (
-                        <TaskItem
-                            task={{
-                                id: item.id,
-                                title: item.nom || 'Tâche sans titre',
-                                project: item.projet?.nom || 'Projet inconnu',
-                                time: item.endDate ? new Date(item.endDate).toLocaleDateString() : 'Pas de date',
-                                status: item.statut?.toLowerCase() || 'en_attente',
-                                assignedTo: user.username || user.name || 'Moi',
-                                memberId: item.memberId
-                            }}
+                <View style={styles.tasksContainer}>
+                    <Text style={styles.sectionTitle}>
+                        Tâches ({filteredTasks.length})
+                    </Text>
+                    {filteredTasks.length === 0 ? (
+                        <EmptyTaskList />
+                    ) : (
+                        <FlatList
+                            data={filteredTasks}
+                            renderItem={renderTaskItem}
+                            keyExtractor={keyExtractor}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.tasksList}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={onRefresh}
+                                    colors={[colors.primary]}
+                                />
+                            }
                         />
                     )}
-                    keyExtractor={(item) => `task-${item.id}`}
-                    contentContainerStyle={styles.taskList}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>Aucune tâche trouvée</Text>
-                        </View>
-                    }
-                    refreshing={loading}
-                    onRefresh={() => {
-                        setError(null);
-                        setIsLoading(true);
-                        dispatch(fetchMyTasks());
-                    }}
-                />
+                </View>
             </View>
         </View>
     );
@@ -196,121 +181,64 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#f5f5f5",
     },
-    headerSection: {
-        height: HEADER_HEIGHT,
-        backgroundColor: '#fff',
-        paddingTop: 40,
-        elevation: 4,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-    },
-    welcomeContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 10,
-    },
-    welcomeText: {
-        fontSize: 24,
-        fontWeight: '600',
-        color: '#2c3e50',
-        marginBottom: 10,
-    },
-    progressCard: {
-        backgroundColor: '#4c669f',
-        padding: 15,
-        borderRadius: 15,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    progressText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+    mainContent: {
         flex: 1,
-    },
-    progressCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    progressPercentage: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    calendarContainer: {
-        paddingVertical: 10,
-    },
-    filtersContainer: {
-        backgroundColor: '#fff',
-        paddingVertical: 8,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        padding: 16,
     },
     tasksContainer: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        elevation: 2,
+        marginTop: 16,
     },
-    taskList: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 16,
     },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
+    tasksList: {
+        paddingBottom: 16,
+    },
+    emptyState: {
         alignItems: 'center',
-        paddingVertical: 20,
+        justifyContent: 'center',
+        padding: 32,
     },
-    emptyText: {
+    emptyStateText: {
         fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
+        color: '#999',
+        marginTop: 8,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    loadingText: {
-        fontSize: 16,
-        color: '#666',
-        marginTop: 20,
-    },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 16,
     },
     errorText: {
         fontSize: 16,
-        color: '#ff0000',
+        color: '#ff4444',
         textAlign: 'center',
-        marginHorizontal: 20,
+        marginBottom: 16,
     },
     retryButton: {
         backgroundColor: colors.primary,
-        padding: 15,
-        borderRadius: 5,
-        marginTop: 20,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 8,
     },
     retryButtonText: {
-        fontSize: 16,
         color: '#fff',
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontWeight: '500',
     },
 });
 

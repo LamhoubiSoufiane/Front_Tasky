@@ -11,8 +11,7 @@ const TaskHeader = memo(({ user, progress }) => {
           style={styles.avatar}
         />
         <View>
-          <Text style={styles.greeting}>Hello!</Text>
-          <Text style={styles.userName}>{user?.name}</Text>
+          <Text style={styles.userName}>Hello {user?.username || user?.name || 'User'}!</Text>
         </View>
       </View>
       <View style={styles.progressCard}>
@@ -33,7 +32,8 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    //marginBottom: 16,
+    marginTop: 50,
   },
   avatar: {
     width: 40,

@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../assets/colors';
 
 const TaskCalendar = memo(({ selectedDate, onDateSelect }) => {
@@ -9,14 +10,14 @@ const TaskCalendar = memo(({ selectedDate, onDateSelect }) => {
   const formatDate = (date) => {
     return {
       date: date.getDate(),
-      day: date.toLocaleDateString('fr-FR', { weekday: 'short' }),
-      month: date.toLocaleDateString('fr-FR', { month: 'short' }),
-      full: date,
+      day: date.toLocaleDateString('fr-FR', { weekday: 'long' }),
+      month: date.toLocaleDateString('fr-FR', { month: 'long' }),
+      year: date.getFullYear(),
     };
   };
 
   const handleDateChange = (event, date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    setShowDatePicker(false);
     if (date) {
       onDateSelect(date);
     }
@@ -26,40 +27,58 @@ const TaskCalendar = memo(({ selectedDate, onDateSelect }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Tâches du jour</Text>
-        <TouchableOpacity 
-          style={styles.datePickerButton}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Text style={styles.datePickerButtonText}>Choisir une date</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity 
+        style={styles.dateSelector}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <View style={styles.dateInfo}>
+          <Text style={styles.dateText}>
+            {formattedSelectedDate.day} {formattedSelectedDate.date} {formattedSelectedDate.month} {formattedSelectedDate.year}
+          </Text>
+          <Text style={styles.hint}>Cliquez pour changer la date</Text>
+        </View>
+        <Icon name="calendar" size={24} color={colors.primary} />
+      </TouchableOpacity>
 
-      <View style={styles.selectedDateContainer}>
-        <TouchableOpacity
-          style={[styles.dayContainer, styles.selectedDay]}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Text style={[styles.monthText, styles.selectedText]}>
-            {formattedSelectedDate.month}
-          </Text>
-          <Text style={[styles.dateText, styles.selectedText]}>
-            {formattedSelectedDate.date}
-          </Text>
-          <Text style={[styles.dayNameText, styles.selectedText]}>
-            {formattedSelectedDate.day}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDateChange}
-        />
+      {Platform.OS === 'ios' ? (
+        showDatePicker && (
+          <View style={styles.iosPickerContainer}>
+            <View style={styles.iosPickerHeader}>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(false)}
+                style={styles.iosButton}
+              >
+                <Text style={styles.iosButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  handleDateChange(null, selectedDate);
+                }}
+                style={styles.iosButton}
+              >
+                <Text style={[styles.iosButtonText, styles.confirmButton]}>OK</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={selectedDate || new Date()}
+              mode="date"
+              display="spinner"
+              onChange={(event, date) => {
+                if (date) onDateSelect(date);
+              }}
+              style={styles.iosPicker}
+            />
+          </View>
+        )
+      ) : (
+        showDatePicker && (
+          <DateTimePicker
+            value={selectedDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )
       )}
     </View>
   );
@@ -68,62 +87,61 @@ const TaskCalendar = memo(({ selectedDate, onDateSelect }) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    paddingVertical: 16,
+    padding: 16,
   },
-  header: {
+  dateSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  dateInfo: {
+    flex: 1,
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  hint: {
+    fontSize: 12,
+    color: '#6c757d',
+  },
+  iosPickerContainer: {
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  iosPickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderColor: '#e9ecef',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+  iosButton: {
+    padding: 8,
   },
-  datePickerButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  iosButtonText: {
+    fontSize: 16,
+    color: colors.primary,
   },
-  datePickerButtonText: {
-    color: '#fff',
-    fontSize: 14,
+  confirmButton: {
+    fontWeight: '600',
   },
-  selectedDateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  dayContainer: {
-    width: 100,
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-  },
-  selectedDay: {
-    backgroundColor: colors.primary,
-  },
-  monthText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  dateText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginVertical: 4,
-  },
-  dayNameText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  selectedText: {
-    color: '#fff',
+  iosPicker: {
+    backgroundColor: '#fff',
   },
 });
 
